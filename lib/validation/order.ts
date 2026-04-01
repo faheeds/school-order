@@ -1,0 +1,69 @@
+import { z } from "zod";
+
+const optionalTextField = z.preprocess((value) => {
+  if (value === null || value === undefined) return "";
+  return value;
+}, z.string().optional().default(""));
+
+export const orderCartItemSchema = z.object({
+  menuItemId: z.string().min(1),
+  choice: z.string().optional(),
+  additions: z.array(z.string()).default([]),
+  removals: z.array(z.string()).default([])
+});
+
+export const orderFormSchema = z.object({
+  parentName: z.string().min(2),
+  parentEmail: z.string().email(),
+  schoolId: z.string().min(1),
+  deliveryDateId: z.string().min(1),
+  studentName: z.string().min(2),
+  grade: z.string().min(1),
+  teacherName: optionalTextField,
+  classroom: optionalTextField,
+  cartItems: z.array(orderCartItemSchema).min(1, "Add at least one item to the cart."),
+  allergyNotes: optionalTextField,
+  dietaryNotes: optionalTextField,
+  specialInstructions: optionalTextField
+});
+
+export const adminLoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8)
+});
+
+export const schoolSchema = z.object({
+  name: z.string().min(2),
+  slug: z.string().min(2),
+  timezone: z.string().min(2),
+  defaultCutoffHour: z.coerce.number().int().min(0).max(23),
+  defaultCutoffMinute: z.coerce.number().int().min(0).max(59),
+  collectTeacher: z.coerce.boolean().default(true),
+  collectClassroom: z.coerce.boolean().default(true),
+  isActive: z.coerce.boolean().default(true)
+});
+
+export const menuItemSchema = z.object({
+  name: z.string().min(2),
+  slug: z.string().min(2),
+  description: z.string().optional().default(""),
+  basePriceCents: z.coerce.number().int().min(0),
+  isActive: z.coerce.boolean().default(true)
+});
+
+export const menuOptionSchema = z.object({
+  menuItemId: z.string().min(1),
+  name: z.string().min(1),
+  optionType: z.enum(["ADD_ON", "REMOVAL"]),
+  priceDeltaCents: z.coerce.number().int().min(0).default(0),
+  isDefault: z.coerce.boolean().default(false),
+  sortOrder: z.coerce.number().int().default(0)
+});
+
+export const deliveryDateSchema = z.object({
+  schoolId: z.string().min(1),
+  deliveryDate: z.string().min(1),
+  cutoffAt: z.string().min(1),
+  orderingOpen: z.coerce.boolean().default(true),
+  notes: z.string().optional().default("")
+});
