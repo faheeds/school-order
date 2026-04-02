@@ -3,23 +3,36 @@ import { Card, SectionTitle } from "@/components/ui";
 import { prisma } from "@/lib/db";
 import { listOrders } from "@/lib/orders";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
-import { formatCurrency, formatList } from "@/lib/utils";
-import { OrderStatusActions } from "@/components/admin/order-status-actions";
+import { OrdersList } from "@/components/admin/orders-list";
 import { formatInTimeZone } from "date-fns-tz";
 
 export const dynamic = "force-dynamic";
 
+function normalizeMultiValue(value: string | string[] | undefined) {
+  if (!value) return [];
+  return Array.isArray(value) ? value.filter(Boolean) : [value].filter(Boolean);
+}
+
 export default async function AdminOrdersPage({
   searchParams
 }: {
-  searchParams: Promise<{ deliveryDateId?: string; schoolId?: string; status?: string; archived?: string }>;
+  searchParams: Promise<{ deliveryDateId?: string; schoolIds?: string | string[]; status?: string; archived?: string }>;
 }) {
   const params = await searchParams;
+  const selectedSchoolIds = normalizeMultiValue(params.schoolIds);
   const [orders, schools, deliveryDates] = await Promise.all([
-    listOrders(params),
+    listOrders({
+      deliveryDateId: params.deliveryDateId,
+      schoolIds: selectedSchoolIds,
+      status: params.status,
+      archived: params.archived
+    }),
     prisma.school.findMany({ where: { isActive: true, slug: { in: [...ALLOWED_SCHOOL_SLUGS] } }, orderBy: { name: "asc" } }),
     prisma.deliveryDate.findMany({
-      where: { school: { slug: { in: [...ALLOWED_SCHOOL_SLUGS] } } },
+      where: {
+        school: { slug: { in: [...ALLOWED_SCHOOL_SLUGS] } },
+        schoolId: selectedSchoolIds.length ? { in: selectedSchoolIds } : undefined
+      },
       include: { school: true },
       orderBy: { deliveryDate: "asc" }
     })
@@ -34,8 +47,7 @@ export default async function AdminOrdersPage({
       />
       <Card>
         <form className="grid gap-4 md:grid-cols-5">
-          <select name="schoolId" defaultValue={params.schoolId ?? ""} className="rounded-2xl border-slate-200">
-            <option value="">All schools</option>
+          <select name="schoolIds" multiple defaultValue={selectedSchoolIds} className="min-h-32 rounded-2xl border-slate-200">
             {schools.map((school) => (
               <option key={school.id} value={school.id}>
                 {school.name}
@@ -46,7 +58,7 @@ export default async function AdminOrdersPage({
             <option value="">All delivery dates</option>
             {deliveryDates.map((date) => (
               <option key={date.id} value={date.id}>
-                {date.school.name} - {formatInTimeZone(date.deliveryDate, date.school.timezone, "EEE, MMM d")}
+                {formatInTimeZone(date.deliveryDate, date.school.timezone, "EEE, MMM d")}
               </option>
             ))}
           </select>
@@ -66,6 +78,7 @@ export default async function AdminOrdersPage({
             Apply filters
           </button>
         </form>
+        <p className="mt-3 text-xs text-slate-500">Hold Ctrl (Windows) or Command (Mac) to select multiple schools.</p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link
             href={`/admin/orders/labels-print${params.deliveryDateId ? `?deliveryDateId=${params.deliveryDateId}` : ""}`}
@@ -87,40 +100,7 @@ export default async function AdminOrdersPage({
           </Link>
         </div>
       </Card>
-      <div className="space-y-4">
-        {orders.map((order) => (
-          <Card key={order.id} className="grid gap-4 lg:grid-cols-[1.3fr_1fr_0.8fr]">
-            <div className="space-y-2 text-sm text-slate-600">
-              <p className="text-base font-semibold text-ink">{order.student.studentName}</p>
-              <p>
-                {order.school.name} | Grade {order.student.grade}
-              </p>
-              <p>
-                Delivery: {formatInTimeZone(order.deliveryDate.deliveryDate, order.school.timezone, "EEEE, MMM d")}
-              </p>
-              <p>Teacher/classroom: {order.student.teacherName || "n/a"} / {order.student.classroom || "n/a"}</p>
-              <p>Parent: {order.parentName} ({order.parentEmail})</p>
-            </div>
-            <div className="space-y-2 text-sm text-slate-600">
-              <p className="font-medium text-ink">{order.items.map((item) => item.itemNameSnapshot).join(", ")}</p>
-              <p>Additions: {formatList(order.items.flatMap((item) => item.additions))}</p>
-              <p>Removals: {formatList(order.items.flatMap((item) => item.removals))}</p>
-              <p>Allergy: {order.items.map((item) => item.allergyNotes).find(Boolean) || order.student.allergyNotes || "None"}</p>
-              <p>Special: {order.specialInstructions || "None"}</p>
-            </div>
-            <div className="space-y-2 text-sm text-slate-600">
-              <p className="font-medium text-ink">{order.orderNumber}</p>
-              <p>Status: {order.status}</p>
-              <p>Archived: {order.archivedAt ? "Yes" : "No"}</p>
-              <p>Total: {formatCurrency(order.totalCents)}</p>
-              <Link href={`/admin/orders/${order.id}`} className="text-xs font-medium text-brand-700">
-                Edit order
-              </Link>
-              <OrderStatusActions orderId={order.id} isArchived={Boolean(order.archivedAt)} />
-            </div>
-          </Card>
-        ))}
-      </div>
+      <OrdersList orders={orders} />
     </div>
   );
 }
