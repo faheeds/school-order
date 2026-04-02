@@ -21,6 +21,10 @@ export async function createStripeCheckoutSession(args: CheckoutArgs) {
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     customer_email: args.parentEmail,
+    billing_address_collection: "required",
+    automatic_tax: {
+      enabled: true
+    },
     success_url: `${env.APP_BASE_URL}/checkout/success?order=${args.orderId}`,
     cancel_url: `${env.APP_BASE_URL}/order?cancelled=1`,
     metadata: {

@@ -39,7 +39,11 @@ export async function POST(request: Request) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.id) {
-        const order = await markOrderPaidByCheckoutSession(session.id, String(session.payment_intent || ""));
+        const order = await markOrderPaidByCheckoutSession(
+          session.id,
+          String(session.payment_intent || ""),
+          session.amount_total ?? null
+        );
         try {
           await sendOrderConfirmationEmail(order.id);
         } catch {

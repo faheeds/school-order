@@ -204,7 +204,11 @@ export async function createPendingOrder(input: OrderDraftInput, checkoutSession
   });
 }
 
-export async function markOrderPaidByCheckoutSession(sessionId: string, paymentIntentId?: string | null) {
+export async function markOrderPaidByCheckoutSession(
+  sessionId: string,
+  paymentIntentId?: string | null,
+  amountTotalCents?: number | null
+) {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.findFirst({
       where: { checkoutSessionId: sessionId },
@@ -226,7 +230,8 @@ export async function markOrderPaidByCheckoutSession(sessionId: string, paymentI
       data: {
         status: paidState.orderStatus,
         paidAt: paidState.paidAt,
-        paymentIntentId: paymentIntentId ?? order.paymentIntentId
+        paymentIntentId: paymentIntentId ?? order.paymentIntentId,
+        totalCents: amountTotalCents ?? order.totalCents
       },
       include: { items: true, student: true, school: true, deliveryDate: true, payment: true }
     });
@@ -237,7 +242,8 @@ export async function markOrderPaidByCheckoutSession(sessionId: string, paymentI
         status: paidState.paymentStatus,
         paidAt: paidState.paidAt,
         providerSessionId: sessionId,
-        providerPaymentIntent: paymentIntentId ?? order.payment?.providerPaymentIntent
+        providerPaymentIntent: paymentIntentId ?? order.payment?.providerPaymentIntent,
+        amountCents: amountTotalCents ?? order.payment?.amountCents ?? order.totalCents
       }
     });
 
