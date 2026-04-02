@@ -106,7 +106,7 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
   );
   const selectedDelivery = deliveryDates.find((item) => item.id === selectedDeliveryDateId);
   const menuItems = menuItemsByDeliveryDate[selectedDeliveryDateId] ?? [];
-  const selectedMenuItem = menuItems.find((item) => item.id === selectedMenuItemId) ?? menuItems[0];
+  const selectedMenuItem = menuItems.find((item) => item.id === selectedMenuItemId);
   const groupedMenuItems = useMemo(() => {
     const groups = menuItems.reduce<Record<string, MenuItem[]>>((acc, item) => {
       const category = getMenuCategory(item);
@@ -237,6 +237,7 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
                   setSelectedSchoolId(nextSchoolId);
                   setSelectedDeliveryDateId(nextDates[0]?.id ?? "");
                   setSelectedMenuItemId("");
+                  setSelectedChoice("");
                   setSelectedAdditions([]);
                   setSelectedRemovals([]);
                   setCartItems([]);
@@ -258,6 +259,7 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
                 onChange={(event) => {
                   setSelectedDeliveryDateId(event.target.value);
                   setSelectedMenuItemId("");
+                  setSelectedChoice("");
                   setSelectedAdditions([]);
                   setSelectedRemovals([]);
                   setCartItems([]);
@@ -284,7 +286,7 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
                 <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">{category}</h3>
                 <div className="grid gap-3 xl:grid-cols-2">
                   {items.map((item) => {
-                    const isSelected = (selectedMenuItemId || selectedMenuItem?.id) === item.id;
+                    const isSelected = selectedMenuItemId === item.id;
                     return (
                       <button
                         key={item.id}
