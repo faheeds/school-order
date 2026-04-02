@@ -46,6 +46,7 @@ async function main() {
     "mac-n-cheese",
     "chicken-quesadilla",
     "beef-quesadilla",
+    "chicken-wings-4pc",
     "chicken-tenders",
     "chicken-tenders-fries",
     "fries",
@@ -170,6 +171,9 @@ async function main() {
         { name: "Bacon", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 200, sortOrder: 2 },
         { name: "Avocado", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 150, sortOrder: 3 },
         { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 4 },
+        { name: "Extra patty", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 399, sortOrder: 5 },
+        { name: "Fried egg", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 199, sortOrder: 6 },
+        { name: "Jalapenos", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 49, sortOrder: 7 },
         { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
         { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
         { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 },
@@ -190,6 +194,7 @@ async function main() {
         { name: "Extra cheese", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 1 },
         { name: "Extra bacon", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 200, sortOrder: 2 },
         { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 3 },
+        { name: "Extra patty", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 399, sortOrder: 4 },
         { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
         { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
         { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 },
@@ -205,6 +210,7 @@ async function main() {
         { name: "Extra cheddar", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 1 },
         { name: "Bacon", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 200, sortOrder: 2 },
         { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 3 },
+        { name: "Extra patty", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 399, sortOrder: 4 },
         { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
         { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
         { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 }
@@ -307,6 +313,19 @@ async function main() {
         { name: "Extra beef", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 200, sortOrder: 1 },
         { name: "Extra cheese", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 2 },
         { name: "Cheese", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 }
+      ]
+    },
+    {
+      name: "4pc Chicken Wings",
+      slug: "chicken-wings-4pc",
+      description: "Comfort Favorites. Required flavor choice for each order.",
+      basePriceCents: 999,
+      options: [
+        { name: "BBQ", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 0, sortOrder: -4 },
+        { name: "Spicy BBQ", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 0, sortOrder: -3 },
+        { name: "Buffalo", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 0, sortOrder: -2 },
+        { name: "Lemon Pepper", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 0, sortOrder: -1 },
+        { name: "Ranch dip", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 75, sortOrder: 1 }
       ]
     },
     {

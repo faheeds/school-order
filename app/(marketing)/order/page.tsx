@@ -73,6 +73,7 @@ export default async function OrderPage() {
                 key,
                 value.map((item) => ({
                   id: item.id,
+                  slug: item.slug,
                   name: item.name,
                   description: item.description,
                   basePriceCents: item.basePriceCents,

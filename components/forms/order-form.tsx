@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { formatInTimeZone } from "date-fns-tz";
+import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
 import { cn } from "@/lib/utils";
 
 type DeliveryDate = {
@@ -28,6 +29,7 @@ type MenuOption = {
 
 type MenuItem = {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
   basePriceCents: number;
@@ -136,6 +138,7 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
     () => cartItems.reduce((sum, item) => sum + item.lineTotalCents, 0),
     [cartItems]
   );
+  const requiredChoices = selectedMenuItem ? getRequiredChoicesForMenuItem(selectedMenuItem.slug) : [];
 
   function toggleSelection(value: string, current: string[], setter: (items: string[]) => void) {
     setter(current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
@@ -150,8 +153,8 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
       setError("Select an item before adding it to the cart.");
       return;
     }
-    if (selectedMenuItem.name === "Gourmet Burgers" && !selectedChoice) {
-      setError("Choose a gourmet burger style before adding it to the cart.");
+    if (requiredChoices.length && !selectedChoice) {
+      setError(`Choose a required option for ${selectedMenuItem.name} before adding it to the cart.`);
       return;
     }
 
@@ -364,17 +367,11 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-700">Step 3</p>
             <h2 className="mt-1 text-lg font-semibold">Customize {selectedMenuItem.name}</h2>
             <p className="mt-1 text-sm text-slate-600">Choose add-ons or removals now. The quick-add bar below stays visible while you scroll.</p>
-            {selectedMenuItem.name === "Gourmet Burgers" ? (
+            {requiredChoices.length ? (
               <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50 p-4">
-                <p className="text-sm font-semibold text-ink">Required: choose your gourmet burger</p>
+                <p className="text-sm font-semibold text-ink">Required: choose one option</p>
                 <div className="mt-3 grid gap-2">
-                  {[
-                    "Bacon Cheddar",
-                    "Jalapeno Sriracha",
-                    "Hawaiian (Pineapple) Burger",
-                    "Western (no veggies)",
-                    "Shroom n Onions"
-                  ].map((choice) => (
+                  {requiredChoices.map((choice) => (
                     <label key={choice} className="flex items-center gap-3 rounded-2xl bg-white px-3 py-3 text-sm">
                       <input
                         type="radio"
@@ -395,13 +392,7 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
                 .filter(
                   (option) =>
                     option.optionType === "ADD_ON" &&
-                    ![
-                      "Bacon Cheddar",
-                      "Jalapeno Sriracha",
-                      "Hawaiian (Pineapple) Burger",
-                      "Western (no veggies)",
-                      "Shroom n Onions"
-                    ].includes(option.name)
+                    !requiredChoices.includes(option.name)
                 )
                 .map((option) => (
                   <label key={option.id} className="flex items-center gap-3 text-sm">

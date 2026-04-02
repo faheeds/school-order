@@ -2,6 +2,7 @@ import { OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { prisma } from "@/lib/db";
 import { DEFAULT_TIMEZONE } from "@/lib/constants";
+import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
 import { orderFormSchema } from "@/lib/validation/order";
 import type { OrderDraftInput } from "@/types/order";
@@ -113,16 +114,9 @@ export async function createPendingOrder(input: OrderDraftInput, checkoutSession
       throw new Error(`One or more removals are invalid for ${menuItem.name}.`);
     }
 
-    const gourmetChoices = [
-      "Bacon Cheddar",
-      "Jalapeno Sriracha",
-      "Hawaiian (Pineapple) Burger",
-      "Western (no veggies)",
-      "Shroom n Onions"
-    ];
-    const requiresChoice = menuItem.slug === "gourmet-burgers";
-    if (requiresChoice && (!cartItem.choice || !gourmetChoices.includes(cartItem.choice))) {
-      throw new Error("Choose a gourmet burger style before adding it to the cart.");
+    const requiredChoices = getRequiredChoicesForMenuItem(menuItem.slug);
+    if (requiredChoices.length && (!cartItem.choice || !requiredChoices.includes(cartItem.choice))) {
+      throw new Error(`Choose a required option for ${menuItem.name} before adding it to the cart.`);
     }
 
     const additionCost = menuItem.options
