@@ -29,8 +29,9 @@ function nextBusinessDayOffsets(count: number) {
 }
 
 async function main() {
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
-  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? "admin@example.com").toLowerCase();
+  const defaultSeedAdminEmail = "admin@example.com";
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "ALIF@lbb786";
+  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? "aliffoods@outlook.com").toLowerCase();
   const passwordHash = await bcrypt.hash(adminPassword, 12);
   const activeSchoolSlugs = [...ALLOWED_SCHOOL_SLUGS];
   const activeMenuSlugs = [
@@ -56,15 +57,40 @@ async function main() {
     "churro-cake"
   ];
 
-  await prisma.adminUser.upsert({
-    where: { email: adminEmail },
-    update: { passwordHash, name: "Restaurant Admin" },
-    create: {
-      email: adminEmail,
-      name: "Restaurant Admin",
-      passwordHash
-    }
+  const existingSeedAdmin = await prisma.adminUser.findUnique({
+    where: { email: defaultSeedAdminEmail }
   });
+
+  const existingTargetAdmin = await prisma.adminUser.findUnique({
+    where: { email: adminEmail }
+  });
+
+  if (existingSeedAdmin && adminEmail !== defaultSeedAdminEmail && !existingTargetAdmin) {
+    await prisma.adminUser.update({
+      where: { id: existingSeedAdmin.id },
+      data: {
+        email: adminEmail,
+        passwordHash,
+        name: "Restaurant Admin"
+      }
+    });
+  } else {
+    await prisma.adminUser.upsert({
+      where: { email: adminEmail },
+      update: { passwordHash, name: "Restaurant Admin" },
+      create: {
+        email: adminEmail,
+        name: "Restaurant Admin",
+        passwordHash
+      }
+    });
+
+    if (adminEmail !== defaultSeedAdminEmail) {
+      await prisma.adminUser.deleteMany({
+        where: { email: defaultSeedAdminEmail }
+      });
+    }
+  }
 
   await prisma.school.updateMany({
     where: {

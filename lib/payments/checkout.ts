@@ -25,7 +25,7 @@ export async function createStripeCheckoutSession(args: CheckoutArgs) {
     automatic_tax: {
       enabled: true
     },
-    success_url: `${env.APP_BASE_URL}/checkout/success?order=${args.orderId}`,
+    success_url: `${env.APP_BASE_URL}/checkout/success?order=${args.orderId}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${env.APP_BASE_URL}/order?cancelled=1`,
     metadata: {
       orderId: args.orderId,
