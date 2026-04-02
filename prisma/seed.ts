@@ -169,7 +169,7 @@ async function main() {
         { name: "Cheddar", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 1 },
         { name: "Bacon", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 200, sortOrder: 2 },
         { name: "Avocado", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 150, sortOrder: 3 },
-        { name: "Gluten-free bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 150, sortOrder: 4 },
+        { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 4 },
         { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
         { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
         { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 },
@@ -189,6 +189,7 @@ async function main() {
         { name: "Shroom n Onions", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 0, sortOrder: -1 },
         { name: "Extra cheese", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 1 },
         { name: "Extra bacon", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 200, sortOrder: 2 },
+        { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 3 },
         { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
         { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
         { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 },
@@ -203,6 +204,7 @@ async function main() {
       options: [
         { name: "Extra cheddar", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 1 },
         { name: "Bacon", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 200, sortOrder: 2 },
+        { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 3 },
         { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
         { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
         { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 }
@@ -216,6 +218,7 @@ async function main() {
       options: [
         { name: "Cheese", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 1 },
         { name: "Avocado", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 150, sortOrder: 2 },
+        { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 3 },
         { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
         { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
         { name: "Garlic aioli", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 }
@@ -229,6 +232,7 @@ async function main() {
       options: [
         { name: "Cheese", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 1 },
         { name: "Avocado", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 150, sortOrder: 2 },
+        { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 3 },
         { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
         { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
         { name: "Onion", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 }
@@ -242,6 +246,7 @@ async function main() {
       options: [
         { name: "Cheese", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 1 },
         { name: "Extra pickles", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 50, sortOrder: 2 },
+        { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 3 },
         { name: "Coleslaw", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
         { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
         { name: "Spicy sauce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 }

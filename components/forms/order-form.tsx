@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +90,7 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
   const [selectedRemovals, setSelectedRemovals] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [error, setError] = useState("");
+  const customizeSectionRef = useRef<HTMLDivElement | null>(null);
   const schools = useMemo(
     () =>
       deliveryDates.reduce<DeliveryDate["school"][]>((acc, item) => {
@@ -138,6 +139,10 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
 
   function toggleSelection(value: string, current: string[], setter: (items: string[]) => void) {
     setter(current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+  }
+
+  function jumpToCustomize() {
+    customizeSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function addSelectedItemToCart() {
@@ -199,8 +204,8 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
         removals: item.removals
       })),
       allergyNotes: formData.get("allergyNotes"),
-      dietaryNotes: formData.get("dietaryNotes"),
-      specialInstructions: formData.get("specialInstructions")
+      dietaryNotes: null,
+      specialInstructions: null
     };
 
     const response = await fetch("/api/checkout/create-session", {
@@ -223,7 +228,7 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
       <div className="space-y-5 rounded-3xl border border-brand-100 bg-white p-4 shadow-soft sm:p-6">
         <div className="rounded-3xl bg-brand-50 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-700">Step 1</p>
-          <h2 className="mt-1 text-lg font-semibold">Choose school and delivery date</h2>
+          <h2 className="mt-1 text-lg font-semibold">Choose school, delivery date, and student details</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <label className="space-y-2">
               <span className="text-sm font-medium">School</span>
@@ -272,6 +277,38 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-medium">Parent name</span>
+              <input name="parentName" required className="w-full rounded-2xl border-slate-200" />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-medium">Parent email</span>
+              <input type="email" name="parentEmail" required className="w-full rounded-2xl border-slate-200" />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-medium">Student name</span>
+              <input name="studentName" required className="w-full rounded-2xl border-slate-200" />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-medium">Grade</span>
+              <input name="grade" required className="w-full rounded-2xl border-slate-200" />
+            </label>
+            {selectedDelivery?.school.collectTeacher ? (
+              <label className="space-y-2">
+                <span className="text-sm font-medium">Teacher</span>
+                <input name="teacherName" className="w-full rounded-2xl border-slate-200" />
+              </label>
+            ) : null}
+            {selectedDelivery?.school.collectClassroom ? (
+              <label className="space-y-2">
+                <span className="text-sm font-medium">Classroom</span>
+                <input name="classroom" className="w-full rounded-2xl border-slate-200" />
+              </label>
+            ) : null}
+            <label className="space-y-2 md:col-span-2">
+              <span className="text-sm font-medium">Allergy notes</span>
+              <textarea name="allergyNotes" rows={3} className="w-full rounded-2xl border-slate-200" />
             </label>
           </div>
         </div>
@@ -323,7 +360,7 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
         </div>
 
         {selectedMenuItem ? (
-          <div className="rounded-3xl border border-slate-100 p-4">
+          <div ref={customizeSectionRef} className="rounded-3xl border border-slate-100 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-700">Step 3</p>
             <h2 className="mt-1 text-lg font-semibold">Customize {selectedMenuItem.name}</h2>
             <p className="mt-1 text-sm text-slate-600">Choose add-ons or removals now. The quick-add bar below stays visible while you scroll.</p>
@@ -412,60 +449,6 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
           </div>
         ) : null}
 
-        <div className="rounded-3xl border border-slate-100 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-700">Step 4</p>
-          <h2 className="mt-1 text-lg font-semibold">Enter parent and student details</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="space-y-2">
-            <span className="text-sm font-medium">Parent name</span>
-            <input name="parentName" required className="w-full rounded-2xl border-slate-200" />
-          </label>
-          <label className="space-y-2">
-            <span className="text-sm font-medium">Parent email</span>
-            <input type="email" name="parentEmail" required className="w-full rounded-2xl border-slate-200" />
-          </label>
-          <label className="space-y-2">
-            <span className="text-sm font-medium">Student name</span>
-            <input name="studentName" required className="w-full rounded-2xl border-slate-200" />
-          </label>
-          <label className="space-y-2">
-            <span className="text-sm font-medium">Grade</span>
-            <input name="grade" required className="w-full rounded-2xl border-slate-200" />
-          </label>
-          {selectedDelivery?.school.collectTeacher ? (
-            <label className="space-y-2">
-              <span className="text-sm font-medium">Teacher</span>
-              <input name="teacherName" className="w-full rounded-2xl border-slate-200" />
-            </label>
-          ) : null}
-          {selectedDelivery?.school.collectClassroom ? (
-            <label className="space-y-2">
-              <span className="text-sm font-medium">Classroom</span>
-              <input name="classroom" className="w-full rounded-2xl border-slate-200" />
-            </label>
-          ) : null}
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-slate-100 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-700">Step 5</p>
-          <h2 className="mt-1 text-lg font-semibold">Add allergy and special notes</h2>
-          <div className="mt-4 grid gap-4">
-          <label className="space-y-2">
-            <span className="text-sm font-medium">Allergy notes</span>
-            <textarea name="allergyNotes" rows={3} className="w-full rounded-2xl border-slate-200" />
-          </label>
-          <label className="space-y-2">
-            <span className="text-sm font-medium">Dietary notes</span>
-            <textarea name="dietaryNotes" rows={3} className="w-full rounded-2xl border-slate-200" />
-          </label>
-          <label className="space-y-2">
-            <span className="text-sm font-medium">Special instructions</span>
-            <textarea name="specialInstructions" rows={3} className="w-full rounded-2xl border-slate-200" />
-          </label>
-        </div>
-        </div>
-
         {error ? <p className="rounded-2xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
 
         {selectedMenuItem ? (
@@ -481,8 +464,15 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
                   {selectedRemovals.length ? `No: ${selectedRemovals.join(", ")}` : "No removals selected"}
                 </p>
               </div>
-              <div className="flex items-center justify-between gap-3 md:justify-start">
+              <div className="flex flex-wrap items-center justify-between gap-3 md:justify-start">
                 <p className="text-sm font-semibold text-ink">{formatCurrency(selectedItemTotalCents)}</p>
+                <button
+                  type="button"
+                  onClick={jumpToCustomize}
+                  className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-ink hover:border-brand-300 hover:text-brand-700"
+                >
+                  Customize
+                </button>
                 <button
                   type="button"
                   onClick={addSelectedItemToCart}
