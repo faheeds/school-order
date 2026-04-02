@@ -17,7 +17,8 @@ export async function GET(request: Request) {
   const orders = await prisma.order.findMany({
     where: {
       deliveryDateId: deliveryDateId ?? undefined,
-      status: OrderStatus.PAID
+      status: OrderStatus.PAID,
+      archivedAt: null
     },
     include: {
       school: true,

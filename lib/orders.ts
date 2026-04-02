@@ -255,12 +255,18 @@ export async function listOrders(filters: {
   deliveryDateId?: string;
   schoolId?: string;
   status?: string;
+  archived?: string;
 }) {
   const where: Prisma.OrderWhereInput = {};
 
   if (filters.deliveryDateId) where.deliveryDateId = filters.deliveryDateId;
   if (filters.schoolId) where.schoolId = filters.schoolId;
   if (filters.status && filters.status !== "ALL") where.status = filters.status as OrderStatus;
+  if (filters.archived === "only") {
+    where.archivedAt = { not: null };
+  } else if (filters.archived !== "include") {
+    where.archivedAt = null;
+  }
 
   return prisma.order.findMany({
     where: {

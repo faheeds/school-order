@@ -2,7 +2,7 @@ import { OrderStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendOrderConfirmationEmail } from "@/lib/email/service";
-import { setOrderStatus } from "@/lib/admin";
+import { setOrderArchived, setOrderStatus } from "@/lib/admin";
 import { assertAdminApiRequest } from "@/lib/admin-auth";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ orderId: string }> }) {
@@ -24,6 +24,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
         return NextResponse.json({ ok: true });
       case "cancel":
         await setOrderStatus(orderId, OrderStatus.CANCELLED);
+        return NextResponse.json({ ok: true });
+      case "archive":
+        await setOrderArchived(orderId, true);
+        return NextResponse.json({ ok: true });
+      case "unarchive":
+        await setOrderArchived(orderId, false);
         return NextResponse.json({ ok: true });
       default:
         return NextResponse.json({ error: "Unsupported action." }, { status: 400 });

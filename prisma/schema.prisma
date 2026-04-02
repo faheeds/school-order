@@ -152,6 +152,7 @@ model Order {
   paidAt               DateTime?
   refundedAt           DateTime?
   cancelledAt          DateTime?
+  archivedAt           DateTime?
   confirmationSentAt   DateTime?
   checkoutSessionId    String?      @unique
   paymentIntentId      String?      @unique

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminOrdersPage({
   searchParams
 }: {
-  searchParams: Promise<{ deliveryDateId?: string; schoolId?: string; status?: string }>;
+  searchParams: Promise<{ deliveryDateId?: string; schoolId?: string; status?: string; archived?: string }>;
 }) {
   const params = await searchParams;
   const [orders, schools, deliveryDates] = await Promise.all([
@@ -30,10 +30,10 @@ export default async function AdminOrdersPage({
       <SectionTitle
         eyebrow="Orders"
         title="Filter, export, and label paid student orders"
-        description="Only paid orders are included in label generation by default. Use the actions column to resend confirmations, refund, or cancel."
+        description="Archived orders are hidden by default. Use the actions column to resend confirmations, refund, cancel, or archive old records."
       />
       <Card>
-        <form className="grid gap-4 md:grid-cols-4">
+        <form className="grid gap-4 md:grid-cols-5">
           <select name="schoolId" defaultValue={params.schoolId ?? ""} className="rounded-2xl border-slate-200">
             <option value="">All schools</option>
             {schools.map((school) => (
@@ -57,34 +57,27 @@ export default async function AdminOrdersPage({
             <option value="REFUNDED">Refunded</option>
             <option value="CANCELLED">Cancelled</option>
           </select>
+          <select name="archived" defaultValue={params.archived ?? "exclude"} className="rounded-2xl border-slate-200">
+            <option value="exclude">Active only</option>
+            <option value="include">Active + archived</option>
+            <option value="only">Archived only</option>
+          </select>
           <button type="submit" className="rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white">
             Apply filters
           </button>
         </form>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link
-            href={`/admin/orders/labels-print?labelFormat=standard${params.deliveryDateId ? `&deliveryDateId=${params.deliveryDateId}` : ""}`}
+            href={`/admin/orders/labels-print${params.deliveryDateId ? `?deliveryDateId=${params.deliveryDateId}` : ""}`}
             className="rounded-full border border-slate-200 px-4 py-2 text-sm"
           >
-            Print standard labels
+            Print labels
           </Link>
           <Link
-            href={`/admin/orders/labels-print?labelFormat=kitchen${params.deliveryDateId ? `&deliveryDateId=${params.deliveryDateId}` : ""}`}
+            href={`/api/admin/labels${params.deliveryDateId ? `?deliveryDateId=${params.deliveryDateId}` : ""}`}
             className="rounded-full border border-slate-200 px-4 py-2 text-sm"
           >
-            Print kitchen labels
-          </Link>
-          <Link
-            href={`/api/admin/labels?labelFormat=standard${params.deliveryDateId ? `&deliveryDateId=${params.deliveryDateId}` : ""}`}
-            className="rounded-full border border-slate-200 px-4 py-2 text-sm"
-          >
-            Standard labels PDF
-          </Link>
-          <Link
-            href={`/api/admin/labels?labelFormat=kitchen${params.deliveryDateId ? `&deliveryDateId=${params.deliveryDateId}` : ""}`}
-            className="rounded-full border border-slate-200 px-4 py-2 text-sm"
-          >
-            Kitchen labels PDF
+            Labels PDF
           </Link>
           <Link
             href={`/api/admin/export${params.deliveryDateId ? `?deliveryDateId=${params.deliveryDateId}` : ""}`}
@@ -118,11 +111,12 @@ export default async function AdminOrdersPage({
             <div className="space-y-2 text-sm text-slate-600">
               <p className="font-medium text-ink">{order.orderNumber}</p>
               <p>Status: {order.status}</p>
+              <p>Archived: {order.archivedAt ? "Yes" : "No"}</p>
               <p>Total: {formatCurrency(order.totalCents)}</p>
               <Link href={`/admin/orders/${order.id}`} className="text-xs font-medium text-brand-700">
                 Edit order
               </Link>
-              <OrderStatusActions orderId={order.id} />
+              <OrderStatusActions orderId={order.id} isArchived={Boolean(order.archivedAt)} />
             </div>
           </Card>
         ))}

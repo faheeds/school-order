@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 
-export function OrderStatusActions({ orderId }: { orderId: string }) {
+export function OrderStatusActions({ orderId, isArchived }: { orderId: string; isArchived: boolean }) {
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -32,6 +32,13 @@ export function OrderStatusActions({ orderId }: { orderId: string }) {
         </button>
         <button disabled={isPending} onClick={() => update("cancel")} className="rounded-full border px-3 py-1 text-xs">
           Cancel
+        </button>
+        <button
+          disabled={isPending}
+          onClick={() => update(isArchived ? "unarchive" : "archive")}
+          className="rounded-full border px-3 py-1 text-xs"
+        >
+          {isArchived ? "Unarchive" : "Archive"}
         </button>
       </div>
       {message ? <p className="text-xs text-slate-500">{message}</p> : null}

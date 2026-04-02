@@ -10,8 +10,6 @@ type LabelOrder = Order & {
   items: OrderItem[];
 };
 
-export type LabelFormat = "standard" | "kitchen";
-
 const styles = StyleSheet.create({
   page: {
     padding: 24,
@@ -45,15 +43,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: "#fde7e7",
     color: "#7a271a"
-  },
-  kitchen: {
-    marginTop: 10,
-    paddingTop: 8,
-    borderTop: "1 solid #e5e7eb"
   }
 });
 
-function LabelCard({ order, labelFormat }: { order: LabelOrder; labelFormat: LabelFormat }) {
+function LabelCard({ order }: { order: LabelOrder }) {
   const allergy = order.items.map((item) => item.allergyNotes).find(Boolean) || order.student.dietaryNotes;
   const itemLines = order.items.map((item) => ({
     name: item.itemNameSnapshot,
@@ -63,48 +56,29 @@ function LabelCard({ order, labelFormat }: { order: LabelOrder; labelFormat: Lab
 
   return (
     <View style={styles.label}>
-      {labelFormat === "standard" ? (
-        <>
-          <Text style={styles.title}>{order.student.studentName}</Text>
-          <Text style={styles.meta}>
-            Grade {order.student.grade} | {order.school.name}
-          </Text>
-          <Text style={styles.meta}>
-            {order.student.teacherName || "Teacher n/a"} {order.student.classroom ? `| Room ${order.student.classroom}` : ""}
-          </Text>
-          {itemLines.map((item, index) => (
-            <View key={`${order.id}-${index}`} style={{ marginTop: 8 }}>
-              <Text style={{ fontSize: 12 }}>{item.name}</Text>
-              <Text>Add: {item.additions}</Text>
-              <Text>No: {item.removals}</Text>
-            </View>
-          ))}
-          <Text>Order: {order.orderNumber}</Text>
-          {allergy ? <Text style={styles.alert}>Allergy / diet: {allergy}</Text> : null}
-        </>
-      ) : (
-        <View style={styles.kitchen}>
-          <Text style={styles.title}>
-            {order.student.studentName.toUpperCase()} | {order.student.grade.toUpperCase()}
-          </Text>
-          {itemLines.map((item, index) => (
-            <View key={`${order.id}-kitchen-${index}`} style={{ marginTop: 8 }}>
-              <Text style={{ fontSize: 12 }}>{item.name.toUpperCase()}</Text>
-              <Text>ADD: {item.additions.toUpperCase()}</Text>
-              <Text>NO: {item.removals.toUpperCase()}</Text>
-            </View>
-          ))}
-          <Text>SCHOOL: {order.school.name.toUpperCase()}</Text>
-          {order.student.teacherName ? <Text>TEACHER: {order.student.teacherName.toUpperCase()}</Text> : null}
-          <Text>ORDER: {order.orderNumber}</Text>
-          <Text style={allergy ? styles.alert : { marginTop: 8 }}>ALERT: {allergy ? allergy.toUpperCase() : "NONE"}</Text>
-        </View>
-      )}
+      <>
+        <Text style={styles.title}>{order.student.studentName}</Text>
+        <Text style={styles.meta}>
+          Grade {order.student.grade} | {order.school.name}
+        </Text>
+        <Text style={styles.meta}>
+          {order.student.teacherName || "Teacher n/a"} {order.student.classroom ? `| Room ${order.student.classroom}` : ""}
+        </Text>
+        {itemLines.map((item, index) => (
+          <View key={`${order.id}-${index}`} style={{ marginTop: 8 }}>
+            <Text style={{ fontSize: 12 }}>{item.name}</Text>
+            <Text>Add: {item.additions}</Text>
+            <Text>No: {item.removals}</Text>
+          </View>
+        ))}
+        <Text>Order: {order.orderNumber}</Text>
+        {allergy ? <Text style={styles.alert}>Allergy / diet: {allergy}</Text> : null}
+      </>
     </View>
   );
 }
 
-function LabelsDocument({ orders, labelFormat }: { orders: LabelOrder[]; labelFormat: LabelFormat }) {
+function LabelsDocument({ orders }: { orders: LabelOrder[] }) {
   const titleDate =
     orders[0] &&
     formatInTimeZone(orders[0].deliveryDate.deliveryDate, orders[0].school.timezone, "EEEE, MMM d");
@@ -112,12 +86,10 @@ function LabelsDocument({ orders, labelFormat }: { orders: LabelOrder[]; labelFo
   return (
     <Document title={`Labels ${titleDate ?? ""}`}>
       <Page size="LETTER" style={styles.page}>
-        <Text style={{ marginBottom: 12, fontSize: 16 }}>
-          {labelFormat === "standard" ? "Student labels" : "Kitchen labels"} {titleDate ? `- ${titleDate}` : ""}
-        </Text>
+        <Text style={{ marginBottom: 12, fontSize: 16 }}>Student labels {titleDate ? `- ${titleDate}` : ""}</Text>
         <View style={styles.grid}>
           {orders.map((order) => (
-            <LabelCard key={order.id} order={order} labelFormat={labelFormat} />
+            <LabelCard key={order.id} order={order} />
           ))}
         </View>
       </Page>
@@ -125,8 +97,8 @@ function LabelsDocument({ orders, labelFormat }: { orders: LabelOrder[]; labelFo
   );
 }
 
-export async function generateLabelsPdfBuffer(orders: LabelOrder[], labelFormat: LabelFormat) {
-  return renderToBuffer(<LabelsDocument orders={orders} labelFormat={labelFormat} />);
+export async function generateLabelsPdfBuffer(orders: LabelOrder[]) {
+  return renderToBuffer(<LabelsDocument orders={orders} />);
 }
 
 export function mapOrderToLabelRows(orders: LabelOrder[]) {
