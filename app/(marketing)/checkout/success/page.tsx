@@ -39,9 +39,14 @@ export default async function CheckoutSuccessPage({
           ) : (
             <p className="text-sm text-slate-600">Your payment succeeded. The order record will appear as soon as the webhook completes.</p>
           )}
-          <Link href="/order" className="inline-flex rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold">
-            Place another order
-          </Link>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link href="/" className="inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white">
+              Back to home
+            </Link>
+            <Link href="/order" className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold">
+              Place another order
+            </Link>
+          </div>
         </Card>
       </PageShell>
     </main>
