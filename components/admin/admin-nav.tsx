@@ -4,6 +4,7 @@ import { signOut } from "@/lib/auth";
 const links = [
   { href: "/admin/dashboard", label: "Dashboard" },
   { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/reports", label: "Reports" },
   { href: "/admin/menu", label: "Menu" },
   { href: "/admin/schools", label: "Schools" },
   { href: "/admin/delivery-dates", label: "Delivery Dates" }
