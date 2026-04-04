@@ -11,6 +11,10 @@ function buildOrderNumber(timezone: string) {
   return `SL-${formatInTimeZone(new Date(), timezone, "yyyyMMdd")}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
+function getWeekKey(date: Date, timezone: string) {
+  return formatInTimeZone(date, timezone, "yyyy-'W'II");
+}
+
 function distributeExtraCents(baseAmounts: number[], totalWithExtra: number) {
   const subtotal = baseAmounts.reduce((sum, value) => sum + value, 0);
   if (!subtotal || totalWithExtra <= subtotal) {
@@ -46,7 +50,7 @@ export async function createWeeklyCheckoutBatch(parentUserId: string) {
             }
           }
         },
-        orderBy: [{ weekday: "asc" }, { createdAt: "asc" }]
+        orderBy: [{ weekday: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }]
       }
     }
   });
@@ -60,17 +64,12 @@ export async function createWeeklyCheckoutBatch(parentUserId: string) {
   }
 
   const now = new Date();
-  const sevenDaysFromNow = new Date(now);
-  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-  const deliveryDates = await prisma.deliveryDate.findMany({
+  const futureDeliveryDates = await prisma.deliveryDate.findMany({
     where: {
       orderingOpen: true,
       cutoffAt: { gt: now },
-      deliveryDate: {
-        gte: now,
-        lte: sevenDaysFromNow
-      },
+      deliveryDate: { gte: now },
       schoolId: { in: [...new Set(parent.weeklyPlans.map((plan) => plan.schoolId))] }
     },
     include: {
@@ -86,6 +85,15 @@ export async function createWeeklyCheckoutBatch(parentUserId: string) {
     },
     orderBy: { deliveryDate: "asc" }
   });
+
+  if (!futureDeliveryDates.length) {
+    throw new Error("No upcoming delivery dates are available for the saved children on this plan.");
+  }
+
+  const targetWeekKey = getWeekKey(futureDeliveryDates[0].deliveryDate, futureDeliveryDates[0].school.timezone);
+  const deliveryDates = futureDeliveryDates.filter(
+    (deliveryDate) => getWeekKey(deliveryDate.deliveryDate, deliveryDate.school.timezone) === targetWeekKey
+  );
 
   const batchItems = parent.weeklyPlans.flatMap((plan) => {
     const matchingDeliveryDate = deliveryDates.find(
@@ -129,7 +137,7 @@ export async function createWeeklyCheckoutBatch(parentUserId: string) {
   });
 
   if (!batchItems.length) {
-    throw new Error("No upcoming delivery dates matched the active weekly plans.");
+    throw new Error("No delivery dates in the upcoming lunch week matched the planned items.");
   }
 
   const totalCents = batchItems.reduce((sum, item) => sum + item.lineTotalCents, 0);
@@ -259,6 +267,10 @@ export async function markWeeklyBatchPaidByCheckoutSession(
           }
         }
       }
+    });
+
+    await tx.weeklyLunchPlan.deleteMany({
+      where: { parentUserId: batch.parentUserId }
     });
 
     return { batch: updatedBatch, createdOrderIds };

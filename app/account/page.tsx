@@ -83,9 +83,11 @@ export default async function ParentAccountPage() {
     redirect("/account/sign-in");
   }
 
+  const activeWeeklyPlanCount = parent.weeklyPlans.filter((plan) => plan.isActive).length;
+
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,_#f5fbf8_0%,_#fffdfa_100%)]">
-      <PageShell className="space-y-8">
+      <PageShell className="space-y-8 pb-28 lg:pb-10">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <SectionTitle
             eyebrow="Parent Account"
@@ -104,49 +106,12 @@ export default async function ParentAccountPage() {
           </form>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <Card className="space-y-4">
-            <h2 className="text-xl font-semibold">Saved children</h2>
-            <div className="space-y-3">
-              {parent.children.length ? (
-                parent.children.map((child) => (
-                  <div key={child.id} className="rounded-2xl border border-slate-100 p-4 text-sm text-slate-600">
-                    <p className="font-semibold text-ink">{child.studentName}</p>
-                    <p>{child.school.name} | Grade {child.grade}</p>
-                    <p>Allergy notes: {child.allergyNotes || "None"}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-slate-500">No saved children yet.</p>
-              )}
-            </div>
-
-            <div className="border-t border-slate-100 pt-4">
-              <h3 className="text-lg font-semibold">Add a child</h3>
-              <form action={addChild} className="mt-4 grid gap-4 md:grid-cols-2">
-                <select name="schoolId" className="rounded-2xl border-slate-200" required>
-                  <option value="">Select school</option>
-                  {schools.map((school) => (
-                    <option key={school.id} value={school.id}>
-                      {school.name}
-                    </option>
-                  ))}
-                </select>
-                <input name="studentName" placeholder="Student name" className="rounded-2xl border-slate-200" required />
-                <input name="grade" placeholder="Grade" className="rounded-2xl border-slate-200" required />
-                <input name="allergyNotes" placeholder="Allergy notes" className="rounded-2xl border-slate-200" />
-                <input name="dietaryNotes" placeholder="Dietary notes" className="rounded-2xl border-slate-200 md:col-span-2" />
-                <SubmitButton label="Save child" pendingLabel="Saving..." />
-              </form>
-            </div>
-          </Card>
-
-          <Card className="space-y-4">
-            <h2 className="text-xl font-semibold">Weekly lunch plan</h2>
+        <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <Card className="space-y-4 xl:order-1">
+            <h2 className="text-xl font-semibold">Upcoming week planner</h2>
             <p className="text-sm text-slate-600">
-              Choose a saved child, then fill Monday through Friday. You can add multiple items to a day, pause individual items, and the child&apos;s school is used automatically.
+              Build one lunch schedule for the upcoming school week. Choose a saved child, add items to Monday through Friday, then check out that week only.
             </p>
-            <WeeklyCheckoutButton />
             <WeeklyPlanPlanner
               children={parent.children.map((child) => ({
                 id: child.id,
@@ -171,6 +136,52 @@ export default async function ParentAccountPage() {
                 sortOrder: plan.sortOrder
               }))}
             />
+            <div className="hidden border-t border-slate-100 pt-4 lg:block">
+              <WeeklyCheckoutButton />
+            </div>
+          </Card>
+
+          <Card className="space-y-4 xl:order-2">
+            <h2 className="text-xl font-semibold">Saved children</h2>
+            <details className="group rounded-2xl border border-slate-100 bg-slate-50 p-4" open={parent.children.length === 0}>
+              <summary className="cursor-pointer list-none font-semibold text-ink">
+                View saved children
+              </summary>
+              <div className="mt-4 space-y-3">
+                {parent.children.length ? (
+                  parent.children.map((child) => (
+                    <div key={child.id} className="rounded-2xl border border-slate-100 bg-white p-4 text-sm text-slate-600">
+                      <p className="font-semibold text-ink">{child.studentName}</p>
+                      <p>{child.school.name} | Grade {child.grade}</p>
+                      <p>Allergy notes: {child.allergyNotes || "None"}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500">No saved children yet.</p>
+                )}
+              </div>
+            </details>
+
+            <details className="group rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <summary className="cursor-pointer list-none font-semibold text-ink">
+                Add a child
+              </summary>
+              <form action={addChild} className="mt-4 grid gap-4 md:grid-cols-2">
+                <select name="schoolId" className="rounded-2xl border-slate-200" required>
+                  <option value="">Select school</option>
+                  {schools.map((school) => (
+                    <option key={school.id} value={school.id}>
+                      {school.name}
+                    </option>
+                  ))}
+                </select>
+                <input name="studentName" placeholder="Student name" className="rounded-2xl border-slate-200" required />
+                <input name="grade" placeholder="Grade" className="rounded-2xl border-slate-200" required />
+                <input name="allergyNotes" placeholder="Allergy notes" className="rounded-2xl border-slate-200" />
+                <input name="dietaryNotes" placeholder="Dietary notes" className="rounded-2xl border-slate-200 md:col-span-2" />
+                <SubmitButton label="Save child" pendingLabel="Saving..." />
+              </form>
+            </details>
           </Card>
         </div>
 
@@ -203,6 +214,20 @@ export default async function ParentAccountPage() {
             )}
           </div>
         </Card>
+
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-brand-200 bg-white/95 px-4 py-3 shadow-soft backdrop-blur lg:hidden">
+          <div className="mx-auto flex max-w-7xl items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">Upcoming Week</p>
+              <p className="truncate text-sm text-slate-700">
+                {activeWeeklyPlanCount
+                  ? `${activeWeeklyPlanCount} planned item${activeWeeklyPlanCount === 1 ? "" : "s"} ready for checkout`
+                  : "Add items to your week plan, then check out here"}
+              </p>
+            </div>
+            <WeeklyCheckoutButton label="Checkout week" fullWidth={false} className="shrink-0" />
+          </div>
+        </div>
       </PageShell>
     </main>
   );

@@ -1,8 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
-export function WeeklyCheckoutButton() {
+export function WeeklyCheckoutButton({
+  label = "Checkout upcoming week",
+  className,
+  fullWidth = false
+}: {
+  label?: string;
+  className?: string;
+  fullWidth?: boolean;
+}) {
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
 
@@ -24,14 +33,17 @@ export function WeeklyCheckoutButton() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className={cn("space-y-3", className)}>
       <button
         type="button"
         onClick={handleClick}
         disabled={isPending}
-        className="rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+        className={cn(
+          "rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60",
+          fullWidth ? "w-full" : ""
+        )}
       >
-        {isPending ? "Starting weekly checkout..." : "Checkout upcoming week"}
+        {isPending ? "Starting weekly checkout..." : label}
       </button>
       {error ? <p className="rounded-2xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
     </div>
