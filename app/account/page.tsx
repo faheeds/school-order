@@ -123,7 +123,8 @@ export default async function ParentAccountPage() {
               menuItems={menuItems.map((item) => ({
                 id: item.id,
                 name: item.name,
-                slug: item.slug
+                slug: item.slug,
+                basePriceCents: item.basePriceCents
               }))}
               existingPlans={parent.weeklyPlans.map((plan) => ({
                 id: plan.id,

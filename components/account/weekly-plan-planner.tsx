@@ -24,6 +24,7 @@ type MenuItemSummary = {
   id: string;
   name: string;
   slug: string;
+  basePriceCents: number;
 };
 
 type WeeklyPlanSummary = {
@@ -57,6 +58,10 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
     4: { menuItemId: "", choice: "" },
     5: { menuItemId: "", choice: "" }
   });
+
+  function formatCurrency(cents: number) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  }
 
   const selectedChild = children.find((child) => child.id === selectedChildId);
   const plansByWeekday = useMemo(() => {
@@ -252,7 +257,7 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
                             <option value="">Choose menu item</option>
                             {menuItems.map((item) => (
                               <option key={item.id} value={item.id}>
-                                {item.name}
+                                {item.name} - {formatCurrency(item.basePriceCents)}
                               </option>
                             ))}
                           </select>

@@ -1,5 +1,5 @@
 import { OrderStatus, PaymentStatus, WeeklyCheckoutStatus } from "@prisma/client";
-import { formatInTimeZone } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { prisma } from "@/lib/db";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
 
@@ -11,8 +11,23 @@ function buildOrderNumber(timezone: string) {
   return `SL-${formatInTimeZone(new Date(), timezone, "yyyyMMdd")}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
-function getWeekKey(date: Date, timezone: string) {
-  return formatInTimeZone(date, timezone, "yyyy-'W'II");
+function buildLocalDayStart(date: Date, timezone: string) {
+  return fromZonedTime(`${formatInTimeZone(date, timezone, "yyyy-MM-dd")} 00:00:00`, timezone);
+}
+
+function getUpcomingSchoolWeekRange(now: Date, timezone: string) {
+  const weekday = getWeekdayNumber(now, timezone);
+  const daysUntilNextMonday = weekday === 1 ? 7 : 8 - weekday;
+  const nextMonday = new Date(now);
+  nextMonday.setDate(nextMonday.getDate() + daysUntilNextMonday);
+
+  const nextFriday = new Date(nextMonday);
+  nextFriday.setDate(nextFriday.getDate() + 4);
+
+  return {
+    start: buildLocalDayStart(nextMonday, timezone),
+    end: fromZonedTime(`${formatInTimeZone(nextFriday, timezone, "yyyy-MM-dd")} 23:59:59`, timezone)
+  };
 }
 
 function distributeExtraCents(baseAmounts: number[], totalWithExtra: number) {
@@ -65,11 +80,17 @@ export async function createWeeklyCheckoutBatch(parentUserId: string) {
 
   const now = new Date();
 
-  const futureDeliveryDates = await prisma.deliveryDate.findMany({
+  const primaryTimezone = parent.weeklyPlans[0]?.school.timezone ?? "America/Los_Angeles";
+  const targetRange = getUpcomingSchoolWeekRange(now, primaryTimezone);
+
+  const deliveryDates = await prisma.deliveryDate.findMany({
     where: {
       orderingOpen: true,
       cutoffAt: { gt: now },
-      deliveryDate: { gte: now },
+      deliveryDate: {
+        gte: targetRange.start,
+        lte: targetRange.end
+      },
       schoolId: { in: [...new Set(parent.weeklyPlans.map((plan) => plan.schoolId))] }
     },
     include: {
@@ -86,14 +107,9 @@ export async function createWeeklyCheckoutBatch(parentUserId: string) {
     orderBy: { deliveryDate: "asc" }
   });
 
-  if (!futureDeliveryDates.length) {
+  if (!deliveryDates.length) {
     throw new Error("No upcoming delivery dates are available for the saved children on this plan.");
   }
-
-  const targetWeekKey = getWeekKey(futureDeliveryDates[0].deliveryDate, futureDeliveryDates[0].school.timezone);
-  const deliveryDates = futureDeliveryDates.filter(
-    (deliveryDate) => getWeekKey(deliveryDate.deliveryDate, deliveryDate.school.timezone) === targetWeekKey
-  );
 
   const batchItems = parent.weeklyPlans.flatMap((plan) => {
     const matchingDeliveryDate = deliveryDates.find(
