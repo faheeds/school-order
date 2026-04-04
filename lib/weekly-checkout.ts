@@ -3,6 +3,16 @@ import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { prisma } from "@/lib/db";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
 
+const WEEKDAY_LABELS: Record<number, string> = {
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
+  7: "Sunday"
+};
+
 function getWeekdayNumber(date: Date, timezone: string) {
   return Number(formatInTimeZone(date, timezone, "i"));
 }
@@ -79,19 +89,17 @@ export async function createWeeklyCheckoutBatch(parentUserId: string) {
   }
 
   const now = new Date();
-
   const primaryTimezone = parent.weeklyPlans[0]?.school.timezone ?? "America/Los_Angeles";
   const targetRange = getUpcomingSchoolWeekRange(now, primaryTimezone);
+  const schoolIds = [...new Set(parent.weeklyPlans.map((plan) => plan.schoolId))];
 
-  const deliveryDates = await prisma.deliveryDate.findMany({
+  const allWeekDeliveryDates = await prisma.deliveryDate.findMany({
     where: {
-      orderingOpen: true,
-      cutoffAt: { gt: now },
       deliveryDate: {
         gte: targetRange.start,
         lte: targetRange.end
       },
-      schoolId: { in: [...new Set(parent.weeklyPlans.map((plan) => plan.schoolId))] }
+      schoolId: { in: schoolIds }
     },
     include: {
       school: true,
@@ -107,29 +115,57 @@ export async function createWeeklyCheckoutBatch(parentUserId: string) {
     orderBy: { deliveryDate: "asc" }
   });
 
-  if (!deliveryDates.length) {
+  if (!allWeekDeliveryDates.length) {
     throw new Error("No upcoming delivery dates are available for the saved children on this plan.");
   }
 
+  const eligibleDeliveryDates = allWeekDeliveryDates.filter(
+    (deliveryDate) => deliveryDate.orderingOpen && deliveryDate.cutoffAt > now
+  );
+
+  if (!eligibleDeliveryDates.length) {
+    throw new Error("Ordering has closed for every delivery date in the upcoming lunch week.");
+  }
+
+  const skippedItems: string[] = [];
+
   const batchItems = parent.weeklyPlans.flatMap((plan) => {
-    const matchingDeliveryDate = deliveryDates.find(
+    const weekdayLabel = WEEKDAY_LABELS[plan.weekday] ?? `Day ${plan.weekday}`;
+    const matchingDeliveryDate = eligibleDeliveryDates.find(
       (deliveryDate) =>
         deliveryDate.schoolId === plan.schoolId &&
         getWeekdayNumber(deliveryDate.deliveryDate, deliveryDate.school.timezone) === plan.weekday
     );
 
     if (!matchingDeliveryDate) {
+      const sameDayDelivery = allWeekDeliveryDates.find(
+        (deliveryDate) =>
+          deliveryDate.schoolId === plan.schoolId &&
+          getWeekdayNumber(deliveryDate.deliveryDate, deliveryDate.school.timezone) === plan.weekday
+      );
+
+      skippedItems.push(
+        sameDayDelivery
+          ? `${weekdayLabel}: ${plan.parentChild.studentName} - ${plan.menuItem.name} could not be included because ordering is already closed.`
+          : `${weekdayLabel}: ${plan.parentChild.studentName} - ${plan.menuItem.name} could not be included because no delivery date is scheduled.`
+      );
       return [];
     }
 
     const availability = matchingDeliveryDate.menuAvailability.find((entry) => entry.menuItemId === plan.menuItemId);
     if (!availability) {
+      skippedItems.push(
+        `${weekdayLabel}: ${plan.parentChild.studentName} - ${plan.menuItem.name} is unavailable for ${matchingDeliveryDate.school.name}.`
+      );
       return [];
     }
 
     const requiredChoices = getRequiredChoicesForMenuItem(plan.menuItem.slug);
     if (requiredChoices.length && (!plan.choice || !requiredChoices.includes(plan.choice))) {
-      throw new Error(`Weekly plan for ${plan.parentChild.studentName} is missing a required choice for ${plan.menuItem.name}.`);
+      skippedItems.push(
+        `${weekdayLabel}: ${plan.parentChild.studentName} - ${plan.menuItem.name} is missing a required choice.`
+      );
+      return [];
     }
 
     const addOnCost = plan.menuItem.options
@@ -151,6 +187,10 @@ export async function createWeeklyCheckoutBatch(parentUserId: string) {
       }
     ];
   });
+
+  if (skippedItems.length) {
+    throw new Error(`Weekly checkout could not continue. ${skippedItems.join(" ")}`);
+  }
 
   if (!batchItems.length) {
     throw new Error("No delivery dates in the upcoming lunch week matched the planned items.");
