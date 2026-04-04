@@ -86,18 +86,20 @@ export default async function AdminOrdersPage({
           >
             Print labels
           </Link>
-          <Link
+          <a
             href={`/api/admin/labels${params.deliveryDateId ? `?deliveryDateId=${params.deliveryDateId}` : ""}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="rounded-full border border-slate-200 px-4 py-2 text-sm"
           >
             Labels PDF
-          </Link>
-          <Link
+          </a>
+          <a
             href={`/api/admin/export${params.deliveryDateId ? `?deliveryDateId=${params.deliveryDateId}` : ""}`}
             className="rounded-full border border-slate-200 px-4 py-2 text-sm"
           >
             Export CSV
-          </Link>
+          </a>
         </div>
       </Card>
       <OrdersList orders={orders} />
