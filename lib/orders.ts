@@ -96,7 +96,7 @@ export async function createPendingOrder(input: OrderDraftInput, checkoutSession
       where: { id: parsed.parentChildId }
     });
 
-    if (!parentChild) {
+    if (!parentChild || parentChild.archivedAt) {
       throw new Error("Saved child record not found.");
     }
 

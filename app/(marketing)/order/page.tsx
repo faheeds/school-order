@@ -51,13 +51,14 @@ export default async function OrderPage({
   const parent =
     session?.user?.role === "PARENT" && session.user.parentUserId
       ? await prisma.parentUser.findUnique({
-          where: { id: session.user.parentUserId },
-          include: {
-            children: {
-              orderBy: { studentName: "asc" }
-            }
+        where: { id: session.user.parentUserId },
+        include: {
+          children: {
+            where: { archivedAt: null },
+            orderBy: { studentName: "asc" }
           }
-        })
+        }
+      })
       : null;
 
   const reorderOrder =

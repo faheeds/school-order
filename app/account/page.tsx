@@ -40,15 +40,90 @@ export default async function ParentAccountPage() {
     redirect("/account");
   }
 
+  async function updateChild(formData: FormData) {
+    "use server";
+    const session = await requireParent();
+    const parentUserId = session.user?.parentUserId;
+    if (!parentUserId) {
+      redirect("/account/sign-in");
+    }
+
+    const childId = String(formData.get("childId") || "");
+
+    await prisma.parentChild.updateMany({
+      where: {
+        id: childId,
+        parentUserId,
+        archivedAt: null
+      },
+      data: {
+        schoolId: String(formData.get("schoolId")),
+        studentName: String(formData.get("studentName")),
+        grade: String(formData.get("grade")),
+        allergyNotes: String(formData.get("allergyNotes") || "") || null,
+        dietaryNotes: String(formData.get("dietaryNotes") || "") || null
+      }
+    });
+
+    revalidatePath("/account");
+    redirect("/account");
+  }
+
+  async function archiveChild(formData: FormData) {
+    "use server";
+    const session = await requireParent();
+    const parentUserId = session.user?.parentUserId;
+    if (!parentUserId) {
+      redirect("/account/sign-in");
+    }
+
+    const childId = String(formData.get("childId") || "");
+
+    const child = await prisma.parentChild.findFirst({
+      where: {
+        id: childId,
+        parentUserId,
+        archivedAt: null
+      }
+    });
+
+    if (!child) {
+      revalidatePath("/account");
+      redirect("/account");
+    }
+
+    await prisma.$transaction([
+      prisma.weeklyLunchPlan.deleteMany({
+        where: {
+          parentUserId,
+          parentChildId: childId
+        }
+      }),
+      prisma.parentChild.update({
+        where: { id: childId },
+        data: { archivedAt: new Date() }
+      })
+    ]);
+
+    revalidatePath("/account");
+    redirect("/account");
+  }
+
   const [parent, schools, menuItems, orders] = await Promise.all([
     prisma.parentUser.findUnique({
       where: { id: parentUserId },
       include: {
         children: {
+          where: { archivedAt: null },
           include: { school: true },
           orderBy: { studentName: "asc" }
         },
         weeklyPlans: {
+          where: {
+            parentChild: {
+              archivedAt: null
+            }
+          },
           include: {
             parentChild: true,
             menuItem: true,
@@ -106,11 +181,102 @@ export default async function ParentAccountPage() {
           </form>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <Card className="space-y-4 xl:order-1">
+            <h2 className="text-xl font-semibold">Saved children</h2>
+            <details className="group rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <summary className="cursor-pointer list-none font-semibold text-ink">
+                View saved children
+              </summary>
+              <div className="mt-4 space-y-3">
+                {parent.children.length ? (
+                  parent.children.map((child) => (
+                    <div key={child.id} className="rounded-2xl border border-slate-100 bg-white p-4 text-sm text-slate-600">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <p className="font-semibold text-ink">{child.studentName}</p>
+                          <p>{child.school.name} | Grade {child.grade}</p>
+                          <p>Allergy notes: {child.allergyNotes || "None"}</p>
+                        </div>
+                        <form action={archiveChild}>
+                          <input type="hidden" name="childId" value={child.id} />
+                          <button
+                            type="submit"
+                            className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700"
+                          >
+                            Delete child
+                          </button>
+                        </form>
+                      </div>
+
+                      <details className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                        <summary className="cursor-pointer list-none font-semibold text-ink">Edit details</summary>
+                        <form action={updateChild} className="mt-4 grid gap-4 md:grid-cols-2">
+                          <input type="hidden" name="childId" value={child.id} />
+                          <select name="schoolId" className="rounded-2xl border-slate-200" required defaultValue={child.schoolId}>
+                            {schools.map((school) => (
+                              <option key={school.id} value={school.id}>
+                                {school.name}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            name="studentName"
+                            defaultValue={child.studentName}
+                            placeholder="Student name"
+                            className="rounded-2xl border-slate-200"
+                            required
+                          />
+                          <input name="grade" defaultValue={child.grade} placeholder="Grade" className="rounded-2xl border-slate-200" required />
+                          <input
+                            name="allergyNotes"
+                            defaultValue={child.allergyNotes ?? ""}
+                            placeholder="Allergy notes"
+                            className="rounded-2xl border-slate-200"
+                          />
+                          <input
+                            name="dietaryNotes"
+                            defaultValue={child.dietaryNotes ?? ""}
+                            placeholder="Dietary notes"
+                            className="rounded-2xl border-slate-200 md:col-span-2"
+                          />
+                          <SubmitButton label="Save changes" pendingLabel="Saving..." />
+                        </form>
+                      </details>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500">No saved children yet.</p>
+                )}
+              </div>
+            </details>
+
+            <details className="group rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <summary className="cursor-pointer list-none font-semibold text-ink">
+                Add a child
+              </summary>
+              <form action={addChild} className="mt-4 grid gap-4 md:grid-cols-2">
+                <select name="schoolId" className="rounded-2xl border-slate-200" required>
+                  <option value="">Select school</option>
+                  {schools.map((school) => (
+                    <option key={school.id} value={school.id}>
+                      {school.name}
+                    </option>
+                  ))}
+                </select>
+                <input name="studentName" placeholder="Student name" className="rounded-2xl border-slate-200" required />
+                <input name="grade" placeholder="Grade" className="rounded-2xl border-slate-200" required />
+                <input name="allergyNotes" placeholder="Allergy notes" className="rounded-2xl border-slate-200" />
+                <input name="dietaryNotes" placeholder="Dietary notes" className="rounded-2xl border-slate-200 md:col-span-2" />
+                <SubmitButton label="Save child" pendingLabel="Saving..." />
+              </form>
+            </details>
+          </Card>
+
+          <Card className="space-y-4 xl:order-2">
             <h2 className="text-xl font-semibold">Upcoming week planner</h2>
             <p className="text-sm text-slate-600">
-              Build one lunch schedule for the upcoming school week. Choose a saved child, add items to Monday through Friday, then check out that week only.
+              Build one lunch schedule for the upcoming school week. Choose a saved child, add items day by day, then check out that week only.
             </p>
             <WeeklyPlanPlanner
               children={parent.children.map((child) => ({
@@ -140,49 +306,6 @@ export default async function ParentAccountPage() {
             <div className="hidden border-t border-slate-100 pt-4 lg:block">
               <WeeklyCheckoutButton />
             </div>
-          </Card>
-
-          <Card className="space-y-4 xl:order-2">
-            <h2 className="text-xl font-semibold">Saved children</h2>
-            <details className="group rounded-2xl border border-slate-100 bg-slate-50 p-4" open={parent.children.length === 0}>
-              <summary className="cursor-pointer list-none font-semibold text-ink">
-                View saved children
-              </summary>
-              <div className="mt-4 space-y-3">
-                {parent.children.length ? (
-                  parent.children.map((child) => (
-                    <div key={child.id} className="rounded-2xl border border-slate-100 bg-white p-4 text-sm text-slate-600">
-                      <p className="font-semibold text-ink">{child.studentName}</p>
-                      <p>{child.school.name} | Grade {child.grade}</p>
-                      <p>Allergy notes: {child.allergyNotes || "None"}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">No saved children yet.</p>
-                )}
-              </div>
-            </details>
-
-            <details className="group rounded-2xl border border-slate-100 bg-slate-50 p-4">
-              <summary className="cursor-pointer list-none font-semibold text-ink">
-                Add a child
-              </summary>
-              <form action={addChild} className="mt-4 grid gap-4 md:grid-cols-2">
-                <select name="schoolId" className="rounded-2xl border-slate-200" required>
-                  <option value="">Select school</option>
-                  {schools.map((school) => (
-                    <option key={school.id} value={school.id}>
-                      {school.name}
-                    </option>
-                  ))}
-                </select>
-                <input name="studentName" placeholder="Student name" className="rounded-2xl border-slate-200" required />
-                <input name="grade" placeholder="Grade" className="rounded-2xl border-slate-200" required />
-                <input name="allergyNotes" placeholder="Allergy notes" className="rounded-2xl border-slate-200" />
-                <input name="dietaryNotes" placeholder="Dietary notes" className="rounded-2xl border-slate-200 md:col-span-2" />
-                <SubmitButton label="Save child" pendingLabel="Saving..." />
-              </form>
-            </details>
           </Card>
         </div>
 

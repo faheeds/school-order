@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const choice = String(body.choice || "") || null;
 
     const parentChild = await prisma.parentChild.findFirst({
-      where: { id: parentChildId, parentUserId }
+      where: { id: parentChildId, parentUserId, archivedAt: null }
     });
 
     if (!parentChild) {

@@ -65,7 +65,12 @@ export async function createWeeklyCheckoutBatch(parentUserId: string) {
     where: { id: parentUserId },
     include: {
       weeklyPlans: {
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          parentChild: {
+            archivedAt: null
+          }
+        },
         include: {
           parentChild: true,
           school: true,
