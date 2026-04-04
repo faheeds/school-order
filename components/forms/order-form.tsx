@@ -340,21 +340,38 @@ export function OrderForm({
                           setCartItems([]);
                         }}
                         className={cn(
-                          "rounded-2xl border p-4 text-left transition",
+                          "rounded-2xl border p-3 text-left transition sm:p-4",
                           isSelected
                             ? "border-brand-500 bg-brand-50 shadow-sm"
                             : "border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50"
                         )}
                       >
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
-                          {formatInTimeZone(date.deliveryDate, date.school.timezone, "EEE")}
-                        </p>
-                        <p className="mt-1 text-base font-semibold text-ink">
-                          {formatInTimeZone(date.deliveryDate, date.school.timezone, "MMMM d")}
-                        </p>
-                        <p className="mt-2 text-sm text-slate-600">
-                          Cutoff {formatInTimeZone(date.cutoffAt, date.school.timezone, "MMM d h:mm a")}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={cn(
+                              "flex w-20 shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-3 text-center",
+                              isSelected ? "border-brand-300 bg-white" : "border-slate-200 bg-slate-50"
+                            )}
+                          >
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-700">
+                              {formatInTimeZone(date.deliveryDate, date.school.timezone, "MMM")}
+                            </p>
+                            <p className="mt-1 text-2xl font-bold leading-none text-ink">
+                              {formatInTimeZone(date.deliveryDate, date.school.timezone, "d")}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-ink">
+                              {formatInTimeZone(date.deliveryDate, date.school.timezone, "EEEE")}
+                            </p>
+                            <p className="mt-1 text-sm text-slate-600">
+                              {formatInTimeZone(date.deliveryDate, date.school.timezone, "MMMM d")}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Cutoff {formatInTimeZone(date.cutoffAt, date.school.timezone, "MMM d h:mm a")}
+                            </p>
+                          </div>
+                        </div>
                       </button>
                     );
                   })}
