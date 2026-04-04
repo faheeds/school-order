@@ -39,8 +39,6 @@ export default async function ParentAccountPage() {
         schoolId: String(formData.get("schoolId")),
         studentName: String(formData.get("studentName")),
         grade: String(formData.get("grade")),
-        teacherName: String(formData.get("teacherName") || "") || null,
-        classroom: String(formData.get("classroom") || "") || null,
         allergyNotes: String(formData.get("allergyNotes") || "") || null,
         dietaryNotes: String(formData.get("dietaryNotes") || "") || null
       }
@@ -162,7 +160,6 @@ export default async function ParentAccountPage() {
                   <div key={child.id} className="rounded-2xl border border-slate-100 p-4 text-sm text-slate-600">
                     <p className="font-semibold text-ink">{child.studentName}</p>
                     <p>{child.school.name} | Grade {child.grade}</p>
-                    <p>Teacher: {child.teacherName || "n/a"}</p>
                     <p>Allergy notes: {child.allergyNotes || "None"}</p>
                   </div>
                 ))
@@ -184,8 +181,6 @@ export default async function ParentAccountPage() {
                 </select>
                 <input name="studentName" placeholder="Student name" className="rounded-2xl border-slate-200" required />
                 <input name="grade" placeholder="Grade" className="rounded-2xl border-slate-200" required />
-                <input name="teacherName" placeholder="Teacher" className="rounded-2xl border-slate-200" />
-                <input name="classroom" placeholder="Classroom" className="rounded-2xl border-slate-200" />
                 <input name="allergyNotes" placeholder="Allergy notes" className="rounded-2xl border-slate-200" />
                 <input name="dietaryNotes" placeholder="Dietary notes" className="rounded-2xl border-slate-200 md:col-span-2" />
                 <SubmitButton label="Save child" pendingLabel="Saving..." />

@@ -123,8 +123,8 @@ async function main() {
         timezone: "America/Los_Angeles",
         defaultCutoffHour: 17,
         defaultCutoffMinute: 0,
-        collectTeacher: true,
-        collectClassroom: true,
+        collectTeacher: false,
+        collectClassroom: false,
         isActive: true
       },
       create: {
@@ -133,8 +133,8 @@ async function main() {
         timezone: "America/Los_Angeles",
         defaultCutoffHour: 17,
         defaultCutoffMinute: 0,
-        collectTeacher: true,
-        collectClassroom: true
+        collectTeacher: false,
+        collectClassroom: false
       }
     }),
     prisma.school.upsert({
@@ -144,7 +144,7 @@ async function main() {
         timezone: "America/Los_Angeles",
         defaultCutoffHour: 16,
         defaultCutoffMinute: 30,
-        collectTeacher: true,
+        collectTeacher: false,
         collectClassroom: false,
         isActive: true
       },
@@ -154,7 +154,7 @@ async function main() {
         timezone: "America/Los_Angeles",
         defaultCutoffHour: 16,
         defaultCutoffMinute: 30,
-        collectTeacher: true,
+        collectTeacher: false,
         collectClassroom: false
       }
     })

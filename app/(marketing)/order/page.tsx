@@ -112,9 +112,7 @@ export default async function OrderPage({
               school: {
                 id: date.school.id,
                 name: date.school.name,
-                timezone: date.school.timezone,
-                collectTeacher: date.school.collectTeacher,
-                collectClassroom: date.school.collectClassroom
+                timezone: date.school.timezone
               }
             }))}
             menuItemsByDeliveryDate={Object.fromEntries(
@@ -141,8 +139,6 @@ export default async function OrderPage({
                 schoolId: child.schoolId,
                 studentName: child.studentName,
                 grade: child.grade,
-                teacherName: child.teacherName ?? "",
-                classroom: child.classroom ?? "",
                 allergyNotes: child.allergyNotes ?? "",
                 dietaryNotes: child.dietaryNotes ?? ""
               })) ?? []
@@ -153,8 +149,6 @@ export default async function OrderPage({
               parentChildId: reorderOrder?.parentChildId ?? parent?.children[0]?.id ?? "",
               studentName: reorderOrder?.student.studentName ?? "",
               grade: reorderOrder?.student.grade ?? "",
-              teacherName: reorderOrder?.student.teacherName ?? "",
-              classroom: reorderOrder?.student.classroom ?? "",
               allergyNotes:
                 reorderOrder?.items.map((item) => item.allergyNotes).find(Boolean) ??
                 reorderOrder?.student.allergyNotes ??

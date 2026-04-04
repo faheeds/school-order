@@ -15,8 +15,6 @@ type DeliveryDate = {
     id: string;
     name: string;
     timezone: string;
-    collectTeacher: boolean;
-    collectClassroom: boolean;
   };
 };
 
@@ -54,8 +52,6 @@ type OrderFormProps = {
     schoolId: string;
     studentName: string;
     grade: string;
-    teacherName: string;
-    classroom: string;
     allergyNotes: string;
     dietaryNotes: string;
   }[];
@@ -65,8 +61,6 @@ type OrderFormProps = {
     parentChildId: string;
     studentName: string;
     grade: string;
-    teacherName: string;
-    classroom: string;
     allergyNotes: string;
   };
   initialSchoolId?: string;
@@ -135,8 +129,6 @@ export function OrderForm({
   const [parentEmail, setParentEmail] = useState(initialParentProfile?.parentEmail ?? "");
   const [studentName, setStudentName] = useState(initialParentProfile?.studentName ?? "");
   const [grade, setGrade] = useState(initialParentProfile?.grade ?? "");
-  const [teacherName, setTeacherName] = useState(initialParentProfile?.teacherName ?? "");
-  const [classroom, setClassroom] = useState(initialParentProfile?.classroom ?? "");
   const [allergyNotes, setAllergyNotes] = useState(initialParentProfile?.allergyNotes ?? "");
   const schools = useMemo(
     () =>
@@ -196,8 +188,6 @@ export function OrderForm({
     });
     setStudentName(child.studentName);
     setGrade(child.grade);
-    setTeacherName(child.teacherName);
-    setClassroom(child.classroom);
     setAllergyNotes(child.allergyNotes);
   }, [deliveryDates, savedChildren, selectedParentChildId]);
 
@@ -260,8 +250,6 @@ export function OrderForm({
       parentChildId: selectedParentChildId || undefined,
       studentName,
       grade,
-      teacherName,
-      classroom,
       cartItems: cartItems.map((item) => ({
         menuItemId: item.menuItemId,
         choice: item.choice,
@@ -377,18 +365,6 @@ export function OrderForm({
               <span className="text-sm font-medium">Grade</span>
               <input name="grade" required className="w-full rounded-2xl border-slate-200" value={grade} onChange={(event) => setGrade(event.target.value)} />
             </label>
-            {selectedDelivery?.school.collectTeacher ? (
-              <label className="space-y-2">
-                <span className="text-sm font-medium">Teacher</span>
-                <input name="teacherName" className="w-full rounded-2xl border-slate-200" value={teacherName} onChange={(event) => setTeacherName(event.target.value)} />
-              </label>
-            ) : null}
-            {selectedDelivery?.school.collectClassroom ? (
-              <label className="space-y-2">
-                <span className="text-sm font-medium">Classroom</span>
-                <input name="classroom" className="w-full rounded-2xl border-slate-200" value={classroom} onChange={(event) => setClassroom(event.target.value)} />
-              </label>
-            ) : null}
             <label className="space-y-2 md:col-span-2">
               <span className="text-sm font-medium">Allergy notes</span>
               <textarea name="allergyNotes" rows={3} className="w-full rounded-2xl border-slate-200" value={allergyNotes} onChange={(event) => setAllergyNotes(event.target.value)} />
