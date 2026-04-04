@@ -15,7 +15,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user, account }) {
-      if (user && account?.provider === "credentials") {
+      const isAdminCredentialsLogin =
+        user &&
+        (account?.provider === "credentials" ||
+          account?.provider === "admin-credentials" ||
+          (typeof (user as { role?: string }).role === "string" && (user as { role?: string }).role === "ADMIN"));
+
+      if (isAdminCredentialsLogin) {
         token.role = "ADMIN";
         token.adminUserId = user.id;
         token.parentUserId = undefined;
