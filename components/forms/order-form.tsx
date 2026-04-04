@@ -322,26 +322,45 @@ export function OrderForm({
             </label>
             <label className="space-y-2">
               <span className="text-sm font-medium">Available delivery date</span>
-              <select
-                name="deliveryDateId"
-                className="w-full rounded-2xl border-slate-200"
-                value={selectedDeliveryDateId}
-                onChange={(event) => {
-                  setSelectedDeliveryDateId(event.target.value);
-                  setSelectedMenuItemId("");
-                  setSelectedChoice("");
-                  setSelectedAdditions([]);
-                  setSelectedRemovals([]);
-                  setCartItems([]);
-                }}
-              >
-                {schoolDeliveryDates.map((date) => (
-                  <option key={date.id} value={date.id}>
-                    {formatInTimeZone(date.deliveryDate, date.school.timezone, "EEE, MMM d")} (cutoff{" "}
-                    {formatInTimeZone(date.cutoffAt, date.school.timezone, "MMM d h:mm a")})
-                  </option>
-                ))}
-              </select>
+              <input type="hidden" name="deliveryDateId" value={selectedDeliveryDateId} />
+              <div className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {schoolDeliveryDates.map((date) => {
+                    const isSelected = selectedDeliveryDateId === date.id;
+                    return (
+                      <button
+                        key={date.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedDeliveryDateId(date.id);
+                          setSelectedMenuItemId("");
+                          setSelectedChoice("");
+                          setSelectedAdditions([]);
+                          setSelectedRemovals([]);
+                          setCartItems([]);
+                        }}
+                        className={cn(
+                          "rounded-2xl border p-4 text-left transition",
+                          isSelected
+                            ? "border-brand-500 bg-brand-50 shadow-sm"
+                            : "border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50"
+                        )}
+                      >
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
+                          {formatInTimeZone(date.deliveryDate, date.school.timezone, "EEE")}
+                        </p>
+                        <p className="mt-1 text-base font-semibold text-ink">
+                          {formatInTimeZone(date.deliveryDate, date.school.timezone, "MMMM d")}
+                        </p>
+                        <p className="mt-2 text-sm text-slate-600">
+                          Cutoff {formatInTimeZone(date.cutoffAt, date.school.timezone, "MMM d h:mm a")}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-slate-500">Only dates with an active delivery schedule are shown here.</p>
+              </div>
             </label>
             <label className="space-y-2">
               <span className="text-sm font-medium">Parent name</span>
