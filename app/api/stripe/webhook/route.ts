@@ -6,6 +6,7 @@ import { stripe } from "@/lib/payments/stripe";
 import { markOrderPaidByCheckoutSession } from "@/lib/orders";
 import { sendOrderConfirmationEmail } from "@/lib/email/service";
 import { isDuplicateWebhookEvent } from "@/lib/payments/webhook";
+import { markWeeklyBatchPaidByCheckoutSession } from "@/lib/weekly-checkout";
 
 export async function POST(request: Request) {
   if (!stripe || !env.STRIPE_WEBHOOK_SECRET) {
@@ -39,15 +40,30 @@ export async function POST(request: Request) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.id) {
-        const order = await markOrderPaidByCheckoutSession(
-          session.id,
-          String(session.payment_intent || ""),
-          session.amount_total ?? null
-        );
-        try {
-          await sendOrderConfirmationEmail(order.id);
-        } catch {
-          // Email failures are logged and can be retried in admin.
+        if (session.metadata?.checkoutType === "weekly_batch") {
+          const result = await markWeeklyBatchPaidByCheckoutSession(
+            session.id,
+            String(session.payment_intent || ""),
+            session.amount_total ?? null
+          );
+          for (const orderId of result.createdOrderIds) {
+            try {
+              await sendOrderConfirmationEmail(orderId);
+            } catch {
+              // Email failures are logged and can be retried in admin.
+            }
+          }
+        } else {
+          const order = await markOrderPaidByCheckoutSession(
+            session.id,
+            String(session.payment_intent || ""),
+            session.amount_total ?? null
+          );
+          try {
+            await sendOrderConfirmationEmail(order.id);
+          } catch {
+            // Email failures are logged and can be retried in admin.
+          }
         }
       }
     }

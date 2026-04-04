@@ -73,7 +73,7 @@ export async function getAvailableMenuItems(deliveryDateId: string) {
   return deliveryDate?.menuAvailability.map((entry) => entry.menuItem) ?? [];
 }
 
-export async function createPendingOrder(input: OrderDraftInput, checkoutSessionId?: string) {
+export async function createPendingOrder(input: OrderDraftInput, checkoutSessionId?: string, parentUserId?: string) {
   const parsed = orderFormSchema.parse(input);
   const deliveryDate = await prisma.deliveryDate.findUnique({
     where: { id: parsed.deliveryDateId },
@@ -89,6 +89,21 @@ export async function createPendingOrder(input: OrderDraftInput, checkoutSession
   }
 
   assertOrderingOpen(new Date(), deliveryDate.cutoffAt, deliveryDate.deliveryDate, deliveryDate.school.timezone);
+
+  let parentChild = null;
+  if (parsed.parentChildId) {
+    parentChild = await prisma.parentChild.findUnique({
+      where: { id: parsed.parentChildId }
+    });
+
+    if (!parentChild) {
+      throw new Error("Saved child record not found.");
+    }
+
+    if (parentUserId && parentChild.parentUserId !== parentUserId) {
+      throw new Error("You can only order for saved children on your account.");
+    }
+  }
 
   const normalizedItems = parsed.cartItems.map((cartItem) => {
     const menuEntry = deliveryDate.menuAvailability.find(
@@ -157,6 +172,8 @@ export async function createPendingOrder(input: OrderDraftInput, checkoutSession
         schoolId: parsed.schoolId,
         deliveryDateId: parsed.deliveryDateId,
         studentId: student.id,
+        parentUserId: parentUserId ?? parentChild?.parentUserId ?? null,
+        parentChildId: parentChild?.id ?? null,
         parentName: parsed.parentName,
         parentEmail: parsed.parentEmail,
         specialInstructions: parsed.specialInstructions || null,

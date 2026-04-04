@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatInTimeZone } from "date-fns-tz";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
 import { cn } from "@/lib/utils";
@@ -49,6 +49,29 @@ type CartItem = {
 type OrderFormProps = {
   deliveryDates: DeliveryDate[];
   menuItemsByDeliveryDate: Record<string, MenuItem[]>;
+  savedChildren?: {
+    id: string;
+    schoolId: string;
+    studentName: string;
+    grade: string;
+    teacherName: string;
+    classroom: string;
+    allergyNotes: string;
+    dietaryNotes: string;
+  }[];
+  initialParentProfile?: {
+    parentName: string;
+    parentEmail: string;
+    parentChildId: string;
+    studentName: string;
+    grade: string;
+    teacherName: string;
+    classroom: string;
+    allergyNotes: string;
+  };
+  initialSchoolId?: string;
+  initialDeliveryDateId?: string;
+  initialCartItems?: CartItem[];
 };
 
 function formatCurrency(cents: number) {
@@ -83,16 +106,38 @@ function getMenuSummary(item: MenuItem) {
   return item.description ?? "";
 }
 
-export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormProps) {
-  const [selectedSchoolId, setSelectedSchoolId] = useState(deliveryDates[0]?.school.id ?? "");
-  const [selectedDeliveryDateId, setSelectedDeliveryDateId] = useState(deliveryDates[0]?.id ?? "");
+export function OrderForm({
+  deliveryDates,
+  menuItemsByDeliveryDate,
+  savedChildren = [],
+  initialParentProfile,
+  initialSchoolId,
+  initialDeliveryDateId,
+  initialCartItems = []
+}: OrderFormProps) {
+  const defaultSchoolId = initialSchoolId || deliveryDates[0]?.school.id || "";
+  const defaultDeliveryDateId =
+    initialDeliveryDateId ||
+    deliveryDates.find((item) => item.school.id === defaultSchoolId)?.id ||
+    deliveryDates[0]?.id ||
+    "";
+  const [selectedSchoolId, setSelectedSchoolId] = useState(defaultSchoolId);
+  const [selectedDeliveryDateId, setSelectedDeliveryDateId] = useState(defaultDeliveryDateId);
   const [selectedMenuItemId, setSelectedMenuItemId] = useState("");
   const [selectedChoice, setSelectedChoice] = useState("");
   const [selectedAdditions, setSelectedAdditions] = useState<string[]>([]);
   const [selectedRemovals, setSelectedRemovals] = useState<string[]>([]);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems);
   const [error, setError] = useState("");
   const customizeSectionRef = useRef<HTMLDivElement | null>(null);
+  const [selectedParentChildId, setSelectedParentChildId] = useState(initialParentProfile?.parentChildId ?? savedChildren[0]?.id ?? "");
+  const [parentName, setParentName] = useState(initialParentProfile?.parentName ?? "");
+  const [parentEmail, setParentEmail] = useState(initialParentProfile?.parentEmail ?? "");
+  const [studentName, setStudentName] = useState(initialParentProfile?.studentName ?? "");
+  const [grade, setGrade] = useState(initialParentProfile?.grade ?? "");
+  const [teacherName, setTeacherName] = useState(initialParentProfile?.teacherName ?? "");
+  const [classroom, setClassroom] = useState(initialParentProfile?.classroom ?? "");
+  const [allergyNotes, setAllergyNotes] = useState(initialParentProfile?.allergyNotes ?? "");
   const schools = useMemo(
     () =>
       deliveryDates.reduce<DeliveryDate["school"][]>((acc, item) => {
@@ -139,6 +184,22 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
     [cartItems]
   );
   const requiredChoices = selectedMenuItem ? getRequiredChoicesForMenuItem(selectedMenuItem.slug) : [];
+
+  useEffect(() => {
+    if (!selectedParentChildId) return;
+    const child = savedChildren.find((entry) => entry.id === selectedParentChildId);
+    if (!child) return;
+    setSelectedSchoolId(child.schoolId);
+    setSelectedDeliveryDateId((current) => {
+      const matchingCurrent = deliveryDates.find((date) => date.id === current && date.schoolId === child.schoolId);
+      return matchingCurrent?.id ?? deliveryDates.find((date) => date.schoolId === child.schoolId)?.id ?? current;
+    });
+    setStudentName(child.studentName);
+    setGrade(child.grade);
+    setTeacherName(child.teacherName);
+    setClassroom(child.classroom);
+    setAllergyNotes(child.allergyNotes);
+  }, [deliveryDates, savedChildren, selectedParentChildId]);
 
   function toggleSelection(value: string, current: string[], setter: (items: string[]) => void) {
     setter(current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
@@ -192,21 +253,22 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
     const formData = new FormData(form);
 
     const payload = {
-      parentName: formData.get("parentName"),
-      parentEmail: formData.get("parentEmail"),
+      parentName,
+      parentEmail,
       schoolId: selectedDelivery?.school.id,
       deliveryDateId: selectedDeliveryDateId,
-      studentName: formData.get("studentName"),
-      grade: formData.get("grade"),
-      teacherName: formData.get("teacherName"),
-      classroom: formData.get("classroom"),
+      parentChildId: selectedParentChildId || undefined,
+      studentName,
+      grade,
+      teacherName,
+      classroom,
       cartItems: cartItems.map((item) => ({
         menuItemId: item.menuItemId,
         choice: item.choice,
         additions: item.additions,
         removals: item.removals
       })),
-      allergyNotes: formData.get("allergyNotes"),
+      allergyNotes,
       dietaryNotes: null,
       specialInstructions: null
     };
@@ -283,35 +345,53 @@ export function OrderForm({ deliveryDates, menuItemsByDeliveryDate }: OrderFormP
             </label>
             <label className="space-y-2">
               <span className="text-sm font-medium">Parent name</span>
-              <input name="parentName" required className="w-full rounded-2xl border-slate-200" />
+              <input name="parentName" required className="w-full rounded-2xl border-slate-200" value={parentName} onChange={(event) => setParentName(event.target.value)} />
             </label>
             <label className="space-y-2">
               <span className="text-sm font-medium">Parent email</span>
-              <input type="email" name="parentEmail" required className="w-full rounded-2xl border-slate-200" />
+              <input type="email" name="parentEmail" required className="w-full rounded-2xl border-slate-200" value={parentEmail} onChange={(event) => setParentEmail(event.target.value)} />
             </label>
+            {savedChildren.length ? (
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm font-medium">Saved child</span>
+                <select
+                  name="parentChildId"
+                  className="w-full rounded-2xl border-slate-200"
+                  value={selectedParentChildId}
+                  onChange={(event) => setSelectedParentChildId(event.target.value)}
+                >
+                  <option value="">Use manual entry</option>
+                  {savedChildren.map((child) => (
+                    <option key={child.id} value={child.id}>
+                      {child.studentName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label className="space-y-2">
               <span className="text-sm font-medium">Student name</span>
-              <input name="studentName" required className="w-full rounded-2xl border-slate-200" />
+              <input name="studentName" required className="w-full rounded-2xl border-slate-200" value={studentName} onChange={(event) => setStudentName(event.target.value)} />
             </label>
             <label className="space-y-2">
               <span className="text-sm font-medium">Grade</span>
-              <input name="grade" required className="w-full rounded-2xl border-slate-200" />
+              <input name="grade" required className="w-full rounded-2xl border-slate-200" value={grade} onChange={(event) => setGrade(event.target.value)} />
             </label>
             {selectedDelivery?.school.collectTeacher ? (
               <label className="space-y-2">
                 <span className="text-sm font-medium">Teacher</span>
-                <input name="teacherName" className="w-full rounded-2xl border-slate-200" />
+                <input name="teacherName" className="w-full rounded-2xl border-slate-200" value={teacherName} onChange={(event) => setTeacherName(event.target.value)} />
               </label>
             ) : null}
             {selectedDelivery?.school.collectClassroom ? (
               <label className="space-y-2">
                 <span className="text-sm font-medium">Classroom</span>
-                <input name="classroom" className="w-full rounded-2xl border-slate-200" />
+                <input name="classroom" className="w-full rounded-2xl border-slate-200" value={classroom} onChange={(event) => setClassroom(event.target.value)} />
               </label>
             ) : null}
             <label className="space-y-2 md:col-span-2">
               <span className="text-sm font-medium">Allergy notes</span>
-              <textarea name="allergyNotes" rows={3} className="w-full rounded-2xl border-slate-200" />
+              <textarea name="allergyNotes" rows={3} className="w-full rounded-2xl border-slate-200" value={allergyNotes} onChange={(event) => setAllergyNotes(event.target.value)} />
             </label>
           </div>
         </div>

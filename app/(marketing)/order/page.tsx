@@ -1,11 +1,19 @@
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
+import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
 import { PageShell, SectionTitle } from "@/components/ui";
 import { OrderForm } from "@/components/forms/order-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function OrderPage() {
+export default async function OrderPage({
+  searchParams
+}: {
+  searchParams: Promise<{ reorder?: string }>;
+}) {
+  const session = await auth();
+  const params = await searchParams;
   const deliveryDates = await prisma.deliveryDate.findMany({
     where: {
       orderingOpen: true,
@@ -40,9 +48,50 @@ export default async function OrderPage() {
     orderBy: [{ deliveryDate: "asc" }, { school: { name: "asc" } }]
   });
 
+  const parent =
+    session?.user?.role === "PARENT" && session.user.parentUserId
+      ? await prisma.parentUser.findUnique({
+          where: { id: session.user.parentUserId },
+          include: {
+            children: {
+              orderBy: { studentName: "asc" }
+            }
+          }
+        })
+      : null;
+
+  const reorderOrder =
+    params.reorder && parent
+      ? await prisma.order.findFirst({
+          where: { id: params.reorder, parentUserId: parent.id },
+          include: { items: { include: { menuItem: true } }, deliveryDate: true, school: true, student: true }
+        })
+      : null;
+
   const menuItemsByDeliveryDate = Object.fromEntries(
     deliveryDates.map((date) => [date.id, date.menuAvailability.map((entry) => entry.menuItem)])
   );
+
+  const reorderSchoolId = reorderOrder?.schoolId;
+  const initialDeliveryDateId =
+    reorderSchoolId && deliveryDates.some((date) => date.schoolId === reorderSchoolId)
+      ? deliveryDates.find((date) => date.schoolId === reorderSchoolId)?.id
+      : deliveryDates[0]?.id;
+
+  const initialCartItems =
+    reorderOrder?.items.map((item) => {
+      const requiredChoices = getRequiredChoicesForMenuItem(item.menuItem.slug);
+      const choice = item.additions.find((value) => requiredChoices.includes(value));
+      return {
+        id: item.id,
+        menuItemId: item.menuItemId,
+        itemName: item.itemNameSnapshot,
+        choice,
+        additions: item.additions.filter((value) => !requiredChoices.includes(value)),
+        removals: item.removals,
+        lineTotalCents: item.lineTotalCents
+      };
+    }) ?? [];
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,_#f5fbf8_0%,_#fffdfa_100%)]">
@@ -86,6 +135,34 @@ export default async function OrderPage() {
                 }))
               ])
             )}
+            savedChildren={
+              parent?.children.map((child) => ({
+                id: child.id,
+                schoolId: child.schoolId,
+                studentName: child.studentName,
+                grade: child.grade,
+                teacherName: child.teacherName ?? "",
+                classroom: child.classroom ?? "",
+                allergyNotes: child.allergyNotes ?? "",
+                dietaryNotes: child.dietaryNotes ?? ""
+              })) ?? []
+            }
+            initialParentProfile={{
+              parentName: parent?.name ?? "",
+              parentEmail: parent?.email ?? "",
+              parentChildId: reorderOrder?.parentChildId ?? parent?.children[0]?.id ?? "",
+              studentName: reorderOrder?.student.studentName ?? "",
+              grade: reorderOrder?.student.grade ?? "",
+              teacherName: reorderOrder?.student.teacherName ?? "",
+              classroom: reorderOrder?.student.classroom ?? "",
+              allergyNotes:
+                reorderOrder?.items.map((item) => item.allergyNotes).find(Boolean) ??
+                reorderOrder?.student.allergyNotes ??
+                ""
+            }}
+            initialSchoolId={reorderSchoolId ?? parent?.children[0]?.schoolId ?? ""}
+            initialDeliveryDateId={initialDeliveryDateId ?? ""}
+            initialCartItems={initialCartItems}
           />
         ) : (
           <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">

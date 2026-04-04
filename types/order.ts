@@ -10,6 +10,7 @@ export type OrderDraftInput = {
   parentEmail: string;
   schoolId: string;
   deliveryDateId: string;
+  parentChildId?: string;
   studentName: string;
   grade: string;
   teacherName?: string;

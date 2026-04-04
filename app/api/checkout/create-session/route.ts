@@ -4,13 +4,19 @@ import { createPendingOrder } from "@/lib/orders";
 import { createStripeCheckoutSession } from "@/lib/payments/checkout";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/payments/stripe";
+import { auth } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
+    const authSession = await auth();
     const body = await request.json();
     const parsed = orderFormSchema.parse(body);
 
-    const provisionalOrder = await createPendingOrder(parsed);
+    const provisionalOrder = await createPendingOrder(
+      parsed,
+      undefined,
+      authSession?.user?.role === "PARENT" ? authSession.user.parentUserId : undefined
+    );
 
     if (!stripe) {
       return NextResponse.json(

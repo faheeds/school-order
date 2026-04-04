@@ -17,6 +17,7 @@ export const orderFormSchema = z.object({
   parentEmail: z.string().email(),
   schoolId: z.string().min(1),
   deliveryDateId: z.string().min(1),
+  parentChildId: z.string().optional(),
   studentName: z.string().min(2),
   grade: z.string().min(1),
   teacherName: optionalTextField,
