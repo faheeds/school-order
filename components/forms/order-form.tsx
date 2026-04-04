@@ -124,6 +124,7 @@ export function OrderForm({
   const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems);
   const [error, setError] = useState("");
   const customizeSectionRef = useRef<HTMLDivElement | null>(null);
+  const studentNameInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedParentChildId, setSelectedParentChildId] = useState(initialParentProfile?.parentChildId ?? savedChildren[0]?.id ?? "");
   const [parentName, setParentName] = useState(initialParentProfile?.parentName ?? "");
   const [parentEmail, setParentEmail] = useState(initialParentProfile?.parentEmail ?? "");
@@ -190,6 +191,17 @@ export function OrderForm({
     setGrade(child.grade);
     setAllergyNotes(child.allergyNotes);
   }, [deliveryDates, savedChildren, selectedParentChildId]);
+
+  function switchToManualEntry() {
+    setSelectedParentChildId("");
+    setStudentName("");
+    setGrade("");
+    setAllergyNotes("");
+
+    window.requestAnimationFrame(() => {
+      studentNameInputRef.current?.focus();
+    });
+  }
 
   function toggleSelection(value: string, current: string[], setter: (items: string[]) => void) {
     setter(current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
@@ -346,7 +358,13 @@ export function OrderForm({
                   name="parentChildId"
                   className="w-full rounded-2xl border-slate-200"
                   value={selectedParentChildId}
-                  onChange={(event) => setSelectedParentChildId(event.target.value)}
+                  onChange={(event) => {
+                    if (!event.target.value) {
+                      switchToManualEntry();
+                      return;
+                    }
+                    setSelectedParentChildId(event.target.value);
+                  }}
                 >
                   <option value="">Use manual entry</option>
                   {savedChildren.map((child) => (
@@ -359,7 +377,14 @@ export function OrderForm({
             ) : null}
             <label className="space-y-2">
               <span className="text-sm font-medium">Student name</span>
-              <input name="studentName" required className="w-full rounded-2xl border-slate-200" value={studentName} onChange={(event) => setStudentName(event.target.value)} />
+              <input
+                ref={studentNameInputRef}
+                name="studentName"
+                required
+                className="w-full rounded-2xl border-slate-200"
+                value={studentName}
+                onChange={(event) => setStudentName(event.target.value)}
+              />
             </label>
             <label className="space-y-2">
               <span className="text-sm font-medium">Grade</span>
