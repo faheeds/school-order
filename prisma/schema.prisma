@@ -192,6 +192,7 @@ model WeeklyLunchPlan {
   choice         String?
   additions      String[]
   removals       String[]
+  sortOrder      Int          @default(0)
   isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -201,7 +202,7 @@ model WeeklyLunchPlan {
   menuItem       MenuItem     @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
 
   @@index([parentUserId, weekday])
-  @@unique([parentChildId, weekday])
+  @@index([parentChildId, weekday, sortOrder])
 }
 
 model WeeklyCheckoutBatch {

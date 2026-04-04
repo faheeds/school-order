@@ -5,18 +5,11 @@ import { formatInTimeZone } from "date-fns-tz";
 import { Card, PageShell, SectionTitle } from "@/components/ui";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { WeeklyCheckoutButton } from "@/components/account/weekly-checkout-button";
+import { WeeklyPlanPlanner } from "@/components/account/weekly-plan-planner";
 import { prisma } from "@/lib/db";
 import { signOut } from "@/lib/auth";
 import { requireParent } from "@/lib/parent-auth";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
-
-const weekdays = [
-  { value: 1, label: "Monday" },
-  { value: 2, label: "Tuesday" },
-  { value: 3, label: "Wednesday" },
-  { value: 4, label: "Thursday" },
-  { value: 5, label: "Friday" }
-];
 
 export default async function ParentAccountPage() {
   const session = await requireParent();
@@ -47,46 +40,6 @@ export default async function ParentAccountPage() {
     redirect("/account");
   }
 
-  async function saveWeeklyPlan(formData: FormData) {
-    "use server";
-    const session = await requireParent();
-    const parentUserId = session.user?.parentUserId;
-    if (!parentUserId) {
-      redirect("/account/sign-in");
-    }
-    await prisma.weeklyLunchPlan.upsert({
-      where: {
-        parentChildId_weekday: {
-          parentChildId: String(formData.get("parentChildId")),
-          weekday: Number(formData.get("weekday"))
-        }
-      },
-      update: {
-        parentChildId: String(formData.get("parentChildId")),
-        schoolId: String(formData.get("schoolId")),
-        weekday: Number(formData.get("weekday")),
-        menuItemId: String(formData.get("menuItemId")),
-        choice: String(formData.get("choice") || "") || null,
-        additions: [],
-        removals: [],
-        isActive: formData.get("isActive") === "on"
-      },
-      create: {
-        parentUserId,
-        parentChildId: String(formData.get("parentChildId")),
-        schoolId: String(formData.get("schoolId")),
-        weekday: Number(formData.get("weekday")),
-        menuItemId: String(formData.get("menuItemId")),
-        choice: String(formData.get("choice") || "") || null,
-        additions: [],
-        removals: [],
-        isActive: formData.get("isActive") === "on"
-      }
-    });
-    revalidatePath("/account");
-    redirect("/account");
-  }
-
   const [parent, schools, menuItems, orders] = await Promise.all([
     prisma.parentUser.findUnique({
       where: { id: parentUserId },
@@ -101,7 +54,7 @@ export default async function ParentAccountPage() {
             menuItem: true,
             school: true
           },
-          orderBy: [{ weekday: "asc" }, { createdAt: "asc" }]
+          orderBy: [{ weekday: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }]
         }
       }
     }),
@@ -137,7 +90,7 @@ export default async function ParentAccountPage() {
           <SectionTitle
             eyebrow="Parent Account"
             title={`Welcome${parent.name ? `, ${parent.name}` : ""}`}
-            description="Save your children, keep a weekly lunch plan, and reorder past lunches with fewer clicks."
+            description="Save your children, plan lunches for the week, and reorder past lunches with fewer clicks."
           />
           <form
             action={async () => {
@@ -190,66 +143,34 @@ export default async function ParentAccountPage() {
 
           <Card className="space-y-4">
             <h2 className="text-xl font-semibold">Weekly lunch plan</h2>
-            <p className="text-sm text-slate-600">Build reusable weekday defaults for each child. You can use these as your family’s standing lunch plan.</p>
+            <p className="text-sm text-slate-600">
+              Choose a saved child, then fill Monday through Friday. You can add multiple items to a day, pause individual items, and the child&apos;s school is used automatically.
+            </p>
             <WeeklyCheckoutButton />
-            <form action={saveWeeklyPlan} className="grid gap-4 md:grid-cols-2">
-              <select name="parentChildId" className="rounded-2xl border-slate-200" required>
-                <option value="">Select child</option>
-                {parent.children.map((child) => (
-                  <option key={child.id} value={child.id}>
-                    {child.studentName}
-                  </option>
-                ))}
-              </select>
-              <select name="schoolId" className="rounded-2xl border-slate-200" required>
-                <option value="">Select school</option>
-                {schools.map((school) => (
-                  <option key={school.id} value={school.id}>
-                    {school.name}
-                  </option>
-                ))}
-              </select>
-              <select name="weekday" className="rounded-2xl border-slate-200" required>
-                <option value="">Select weekday</option>
-                {weekdays.map((weekday) => (
-                  <option key={weekday.value} value={weekday.value}>
-                    {weekday.label}
-                  </option>
-                ))}
-              </select>
-              <select name="menuItemId" className="rounded-2xl border-slate-200" required>
-                <option value="">Select menu item</option>
-                {menuItems.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-              <input name="choice" placeholder="Required choice if needed" className="rounded-2xl border-slate-200 md:col-span-2" />
-              <label className="flex items-center gap-2 text-sm text-slate-600 md:col-span-2">
-                <input type="checkbox" name="isActive" defaultChecked />
-                <span>Active weekly plan</span>
-              </label>
-              <SubmitButton label="Save weekly plan" pendingLabel="Saving..." />
-            </form>
-
-            <div className="space-y-3 border-t border-slate-100 pt-4">
-              {parent.weeklyPlans.length ? (
-                parent.weeklyPlans.map((plan) => (
-                  <div key={plan.id} className="rounded-2xl border border-slate-100 p-4 text-sm text-slate-600">
-                    <p className="font-semibold text-ink">
-                      {weekdays.find((weekday) => weekday.value === plan.weekday)?.label}: {plan.parentChild.studentName}
-                    </p>
-                    <p>{plan.school.name}</p>
-                    <p>{plan.menuItem.name}</p>
-                    <p>Choice: {plan.choice || "None"}</p>
-                    <p>Status: {plan.isActive ? "Active" : "Inactive"}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-slate-500">No weekly plans saved yet.</p>
-              )}
-            </div>
+            <WeeklyPlanPlanner
+              children={parent.children.map((child) => ({
+                id: child.id,
+                schoolId: child.schoolId,
+                schoolName: child.school.name,
+                studentName: child.studentName,
+                grade: child.grade
+              }))}
+              menuItems={menuItems.map((item) => ({
+                id: item.id,
+                name: item.name,
+                slug: item.slug
+              }))}
+              existingPlans={parent.weeklyPlans.map((plan) => ({
+                id: plan.id,
+                parentChildId: plan.parentChildId,
+                weekday: plan.weekday,
+                menuItemId: plan.menuItemId,
+                menuItemName: plan.menuItem.name,
+                choice: plan.choice,
+                isActive: plan.isActive,
+                sortOrder: plan.sortOrder
+              }))}
+            />
           </Card>
         </div>
 

@@ -8,6 +8,7 @@ import { env } from "@/lib/env";
 import { adminLoginSchema } from "@/lib/validation/order";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/account/sign-in"
