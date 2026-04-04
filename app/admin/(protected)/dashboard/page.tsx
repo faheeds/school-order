@@ -12,13 +12,13 @@ export default async function AdminDashboardPage() {
       <SectionTitle
         eyebrow="Dashboard"
         title="School lunch operations"
-        description="Monitor order volume, upcoming delivery dates, and the current payment pipeline."
+        description="Monitor paid order volume, operational order status, and upcoming delivery dates."
       />
       <div className="grid gap-4 md:grid-cols-4">
         {[
           ["Paid orders", summary.paidOrders],
-          ["Pending orders", summary.pendingOrders],
           ["Refunded orders", summary.refundedOrders],
+          ["Cancelled orders", summary.cancelledOrders],
           ["Schools", summary.schools]
         ].map(([label, value]) => (
           <Card key={label}>

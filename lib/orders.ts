@@ -277,7 +277,11 @@ export async function listOrders(filters: {
   } else if (filters.schoolId) {
     where.schoolId = filters.schoolId;
   }
-  if (filters.status && filters.status !== "ALL") where.status = filters.status as OrderStatus;
+  if (filters.status && filters.status !== "ALL") {
+    where.status = filters.status as OrderStatus;
+  } else {
+    where.status = { not: OrderStatus.PENDING };
+  }
   if (filters.archived === "only") {
     where.archivedAt = { not: null };
   } else if (filters.archived !== "include") {

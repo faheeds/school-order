@@ -43,7 +43,7 @@ export default async function AdminOrdersPage({
       <SectionTitle
         eyebrow="Orders"
         title="Filter, export, and label paid student orders"
-        description="Archived orders are hidden by default. Use the actions column to resend confirmations, refund, cancel, or archive old records."
+        description="Pending checkout attempts stay out of the main admin workflow by default. Use the actions column to resend confirmations, refund, cancel, or archive completed records."
       />
       <Card>
         <form className="grid gap-4 md:grid-cols-5">
@@ -63,7 +63,7 @@ export default async function AdminOrdersPage({
             ))}
           </select>
           <select name="status" defaultValue={params.status ?? "ALL"} className="rounded-2xl border-slate-200">
-            <option value="ALL">All statuses</option>
+            <option value="ALL">All admin statuses</option>
             <option value="PENDING">Pending</option>
             <option value="PAID">Paid</option>
             <option value="REFUNDED">Refunded</option>
