@@ -1,3 +1,4 @@
+import { addDays, set } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { prisma } from "@/lib/db";
@@ -7,6 +8,95 @@ import { deliveryDateSchema } from "@/lib/validation/order";
 import { SubmitButton } from "@/components/forms/submit-button";
 
 export const dynamic = "force-dynamic";
+
+const DEFAULT_TIMEZONE = "America/Los_Angeles";
+const UPCOMING_DELIVERY_WINDOW = 10;
+
+function zonedDate(daysOut: number, hour = 11, minute = 0, timezone = DEFAULT_TIMEZONE) {
+  const base = addDays(new Date(), daysOut);
+  const isoDay = formatInTimeZone(base, timezone, "yyyy-MM-dd");
+  return fromZonedTime(`${isoDay} ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`, timezone);
+}
+
+function nextBusinessDayOffsets(count: number) {
+  const offsets: number[] = [];
+  let daysOut = 1;
+
+  while (offsets.length < count) {
+    const candidate = addDays(new Date(), daysOut);
+    const day = Number(formatInTimeZone(candidate, DEFAULT_TIMEZONE, "i"));
+    if (day < 6) {
+      offsets.push(daysOut);
+    }
+    daysOut += 1;
+  }
+
+  return offsets;
+}
+
+function startOfTodayInTimezone(timezone = DEFAULT_TIMEZONE) {
+  return fromZonedTime(`${formatInTimeZone(new Date(), timezone, "yyyy-MM-dd")} 00:00:00`, timezone);
+}
+
+async function ensureUpcomingDeliveryDates() {
+  const [schools, menuItems] = await Promise.all([
+    prisma.school.findMany({
+      where: { isActive: true, slug: { in: [...ALLOWED_SCHOOL_SLUGS] } },
+      orderBy: { name: "asc" }
+    }),
+    prisma.menuItem.findMany({ where: { isActive: true }, select: { id: true } })
+  ]);
+
+  const deliveryOffsets = nextBusinessDayOffsets(UPCOMING_DELIVERY_WINDOW);
+
+  for (const school of schools) {
+    for (const daysOut of deliveryOffsets) {
+      const deliveryDate = zonedDate(daysOut, 11, 0, school.timezone);
+      const cutoffAt = set(addDays(deliveryDate, -1), {
+        hours: school.defaultCutoffHour,
+        minutes: school.defaultCutoffMinute,
+        seconds: 0,
+        milliseconds: 0
+      });
+
+      const dateRecord = await prisma.deliveryDate.upsert({
+        where: {
+          schoolId_deliveryDate: {
+            schoolId: school.id,
+            deliveryDate
+          }
+        },
+        update: {},
+        create: {
+          schoolId: school.id,
+          deliveryDate,
+          cutoffAt,
+          orderingOpen: true
+        }
+      });
+
+      for (const menuItem of menuItems) {
+        await prisma.deliveryMenuItem.upsert({
+          where: {
+            deliveryDateId_menuItemId: {
+              deliveryDateId: dateRecord.id,
+              menuItemId: menuItem.id
+            }
+          },
+          update: { isAvailable: true },
+          create: {
+            schoolId: school.id,
+            deliveryDateId: dateRecord.id,
+            menuItemId: menuItem.id,
+            isAvailable: true
+          }
+        });
+      }
+    }
+  }
+
+  return schools;
+}
 
 async function createDeliveryDate(formData: FormData) {
   "use server";
@@ -31,13 +121,14 @@ async function createDeliveryDate(formData: FormData) {
 }
 
 export default async function DeliveryDatesPage() {
-  const [schools, deliveryDates, menuItems] = await Promise.all([
-    prisma.school.findMany({
-      where: { isActive: true, slug: { in: [...ALLOWED_SCHOOL_SLUGS] } },
-      orderBy: { name: "asc" }
-    }),
+  const todayStart = startOfTodayInTimezone();
+  const schools = await ensureUpcomingDeliveryDates();
+  const [deliveryDates, menuItems] = await Promise.all([
     prisma.deliveryDate.findMany({
-      where: { school: { slug: { in: [...ALLOWED_SCHOOL_SLUGS] } } },
+      where: {
+        school: { slug: { in: [...ALLOWED_SCHOOL_SLUGS] } },
+        deliveryDate: { gte: todayStart }
+      },
       include: {
         school: true,
         menuAvailability: { include: { menuItem: true } }
