@@ -2,6 +2,16 @@ import { PageShell } from "@/components/ui";
 
 const proteins = ["Beef", "Crispy Chicken", "Grilled Chicken", "Beyond Vegan Meat"];
 const removals = ["No changes", "Lettuce", "Tomato", "Pickles", "Onions", "Sauce"];
+const desktopMenu = [
+  { name: "Build Your Own Burger", detail: "Choose protein, toppings, and removals", price: "$9.99", active: true },
+  { name: "4pc Chicken Wings", detail: "Required flavor choice", price: "$9.99", active: false },
+  { name: "Mac n' Cheese", detail: "Comfort favorite", price: "$7.99", active: false }
+];
+const mobileMenu = [
+  { name: "Build Your Own Burger", meta: "Protein required", price: "$9.99", selected: true },
+  { name: "Chicken Wings", meta: "Flavor required", price: "$9.99", selected: false },
+  { name: "Large Brownie", meta: "Quick add", price: "$4.99", selected: false }
+];
 
 export function OrderRedesignPreview() {
   return (
@@ -68,18 +78,14 @@ export function OrderRedesignPreview() {
                       </div>
                     </div>
                     <div className="mt-4 grid gap-3">
-                      {[
-                        ["Build Your Own Burger", "Choose protein, toppings, and removals", "$9.99", true],
-                        ["4pc Chicken Wings", "Required flavor choice", "$9.99", false],
-                        ["Mac n' Cheese", "Comfort favorite", "$7.99", false]
-                      ].map(([name, detail, price, active]) => (
-                        <div key={name} className={`rounded-[1.5rem] border px-4 py-4 ${active ? "border-brand-500 bg-brand-50/70" : "border-slate-200 bg-white"}`}>
+                      {desktopMenu.map((item) => (
+                        <div key={item.name} className={`rounded-[1.5rem] border px-4 py-4 ${item.active ? "border-brand-500 bg-brand-50/70" : "border-slate-200 bg-white"}`}>
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="font-semibold text-ink">{name}</p>
-                              <p className="mt-1 text-sm text-slate-600">{detail}</p>
+                              <p className="font-semibold text-ink">{item.name}</p>
+                              <p className="mt-1 text-sm text-slate-600">{item.detail}</p>
                             </div>
-                            <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-ink">{price}</span>
+                            <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-ink">{item.price}</span>
                           </div>
                         </div>
                       ))}
@@ -171,18 +177,14 @@ export function OrderRedesignPreview() {
                       <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">Burgers</span>
                     </div>
                     <div className="mt-3 space-y-3">
-                      {[
-                        ["Build Your Own Burger", "Protein required", "$9.99", true],
-                        ["Chicken Wings", "Flavor required", "$9.99", false],
-                        ["Large Brownie", "Quick add", "$4.99", false]
-                      ].map(([name, meta, price, selected]) => (
-                        <div key={name} className={`rounded-[1.35rem] border px-4 py-4 ${selected ? "border-brand-500 bg-brand-50/80" : "border-slate-200 bg-white"}`}>
+                      {mobileMenu.map((item) => (
+                        <div key={item.name} className={`rounded-[1.35rem] border px-4 py-4 ${item.selected ? "border-brand-500 bg-brand-50/80" : "border-slate-200 bg-white"}`}>
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="font-semibold text-ink">{name}</p>
-                              <p className="mt-1 text-sm text-slate-600">{meta}</p>
+                              <p className="font-semibold text-ink">{item.name}</p>
+                              <p className="mt-1 text-sm text-slate-600">{item.meta}</p>
                             </div>
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-ink">{price}</span>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-ink">{item.price}</span>
                           </div>
                         </div>
                       ))}
