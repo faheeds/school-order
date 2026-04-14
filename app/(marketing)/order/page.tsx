@@ -4,16 +4,22 @@ import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
 import { PageShell, SectionTitle } from "@/components/ui";
 import { OrderForm } from "@/components/forms/order-form";
+import { OrderRedesignPreview } from "@/components/forms/order-redesign-preview";
 
 export const dynamic = "force-dynamic";
 
 export default async function OrderPage({
   searchParams
 }: {
-  searchParams: Promise<{ reorder?: string }>;
+  searchParams: Promise<{ reorder?: string; preview?: string }>;
 }) {
   const session = await auth();
   const params = await searchParams;
+
+  if (params.preview === "concept") {
+    return <OrderRedesignPreview />;
+  }
+
   const deliveryDates = await prisma.deliveryDate.findMany({
     where: {
       orderingOpen: true,
