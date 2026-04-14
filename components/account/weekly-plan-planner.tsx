@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
+import { cn, formatCurrency, formatList } from "@/lib/utils";
 
 const weekdays = [
   { value: 1, label: "Monday" },
@@ -20,11 +21,19 @@ type ChildSummary = {
   grade: string;
 };
 
+type MenuOptionSummary = {
+  id: string;
+  name: string;
+  optionType: "ADD_ON" | "REMOVAL";
+  priceDeltaCents: number;
+};
+
 type MenuItemSummary = {
   id: string;
   name: string;
   slug: string;
   basePriceCents: number;
+  options: MenuOptionSummary[];
 };
 
 type WeeklyPlanSummary = {
@@ -34,6 +43,8 @@ type WeeklyPlanSummary = {
   menuItemId: string;
   menuItemName: string;
   choice: string | null;
+  additions: string[];
+  removals: string[];
   isActive: boolean;
   sortOrder: number;
 };
@@ -44,7 +55,23 @@ type PlannerProps = {
   existingPlans: WeeklyPlanSummary[];
 };
 
-type DraftState = Record<number, { menuItemId: string; choice: string }>;
+type DraftValue = {
+  menuItemId: string;
+  choice: string;
+  additions: string[];
+  removals: string[];
+};
+
+type DraftState = Record<number, DraftValue>;
+
+function createEmptyDraft(): DraftValue {
+  return {
+    menuItemId: "",
+    choice: "",
+    additions: [],
+    removals: []
+  };
+}
 
 export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: PlannerProps) {
   const router = useRouter();
@@ -53,16 +80,12 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
   const [selectedWeekday, setSelectedWeekday] = useState<number>(1);
   const [error, setError] = useState("");
   const [drafts, setDrafts] = useState<DraftState>({
-    1: { menuItemId: "", choice: "" },
-    2: { menuItemId: "", choice: "" },
-    3: { menuItemId: "", choice: "" },
-    4: { menuItemId: "", choice: "" },
-    5: { menuItemId: "", choice: "" }
+    1: createEmptyDraft(),
+    2: createEmptyDraft(),
+    3: createEmptyDraft(),
+    4: createEmptyDraft(),
+    5: createEmptyDraft()
   });
-
-  function formatCurrency(cents: number) {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-  }
 
   const selectedChild = children.find((child) => child.id === selectedChildId);
   const plansByWeekday = useMemo(() => {
@@ -74,12 +97,19 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
       return acc;
     }, {});
   }, [existingPlans, selectedChildId]);
+
   const activeDayPlans = plansByWeekday[selectedWeekday] ?? [];
   const activeDraft = drafts[selectedWeekday];
   const activeMenuItem = menuItems.find((item) => item.id === activeDraft.menuItemId);
   const activeRequiredChoices = activeMenuItem ? getRequiredChoicesForMenuItem(activeMenuItem.slug) : [];
+  const activeAddOnOptions =
+    activeMenuItem?.options.filter(
+      (option) => option.optionType === "ADD_ON" && !activeRequiredChoices.includes(option.name)
+    ) ?? [];
+  const activeRemovalOptions =
+    activeMenuItem?.options.filter((option) => option.optionType === "REMOVAL") ?? [];
 
-  function updateDraft(weekday: number, next: Partial<{ menuItemId: string; choice: string }>) {
+  function updateDraft(weekday: number, next: Partial<DraftValue>) {
     setDrafts((current) => ({
       ...current,
       [weekday]: {
@@ -87,6 +117,32 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
         ...next
       }
     }));
+  }
+
+  function resetDraft(weekday: number) {
+    setDrafts((current) => ({
+      ...current,
+      [weekday]: createEmptyDraft()
+    }));
+  }
+
+  function toggleSelection(
+    weekday: number,
+    key: "additions" | "removals",
+    value: string
+  ) {
+    setDrafts((current) => {
+      const existing = current[weekday][key];
+      return {
+        ...current,
+        [weekday]: {
+          ...current[weekday],
+          [key]: existing.includes(value)
+            ? existing.filter((item) => item !== value)
+            : [...existing, value]
+        }
+      };
+    });
   }
 
   async function runMutation(
@@ -139,10 +195,12 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
           parentChildId: selectedChild.id,
           weekday,
           menuItemId: menuItem.id,
-          choice: draft.choice || null
+          choice: draft.choice || null,
+          additions: draft.additions,
+          removals: draft.removals
         }
       },
-      () => updateDraft(weekday, { menuItemId: "", choice: "" })
+      () => resetDraft(weekday)
     );
   }
 
@@ -168,9 +226,10 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
                       setSelectedWeekday(firstDayWithPlans);
                       setError("");
                     }}
-                    className={`rounded-2xl border p-4 text-left transition ${
+                    className={cn(
+                      "rounded-2xl border p-4 text-left transition",
                       isSelected ? "border-brand-500 bg-brand-50" : "border-slate-200 hover:border-brand-200"
-                    }`}
+                    )}
                   >
                     <p className="font-semibold text-ink">{child.studentName}</p>
                     <p className="text-sm text-slate-600">
@@ -187,7 +246,7 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
               <div className="rounded-2xl bg-brand-50 p-4">
                 <p className="text-sm font-semibold text-brand-700">2. Build {selectedChild.studentName}&rsquo;s week</p>
                 <p className="mt-1 text-sm text-slate-600">
-                  Pick a day, review what is already planned, and add more items only for that day. This keeps the weekly planner much easier to scan.
+                  Pick a day, review what is already planned, and add more items only for that day.
                 </p>
               </div>
 
@@ -203,9 +262,10 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
                         setSelectedWeekday(weekday.value);
                         setError("");
                       }}
-                      className={`min-w-[110px] rounded-2xl border px-4 py-3 text-left transition ${
+                      className={cn(
+                        "min-w-[110px] rounded-2xl border px-4 py-3 text-left transition",
                         isActive ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-200"
-                      }`}
+                      )}
                     >
                       <p className="text-sm font-semibold text-ink">{weekday.label}</p>
                       <p className="mt-1 text-xs text-slate-500">{count ? `${count} planned` : "Open"}</p>
@@ -239,6 +299,8 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
                           <div className="space-y-1 text-sm text-slate-600">
                             <p className="font-semibold text-ink">{plan.menuItemName}</p>
                             <p>Choice: {plan.choice || "None"}</p>
+                            <p>Add-ons: {formatList(plan.additions)}</p>
+                            <p>Removals: {plan.removals.length ? plan.removals.join(", ") : "No changes"}</p>
                             <p>Status: {plan.isActive ? "Active" : "Paused"}</p>
                           </div>
                           <div className="flex flex-col gap-2">
@@ -283,7 +345,14 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
                     <select
                       className="w-full rounded-2xl border-slate-200"
                       value={activeDraft.menuItemId}
-                      onChange={(event) => updateDraft(selectedWeekday, { menuItemId: event.target.value, choice: "" })}
+                      onChange={(event) =>
+                        updateDraft(selectedWeekday, {
+                          menuItemId: event.target.value,
+                          choice: "",
+                          additions: [],
+                          removals: []
+                        })
+                      }
                     >
                       <option value="">Choose menu item</option>
                       {menuItems.map((item) => (
@@ -306,6 +375,90 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
                           </option>
                         ))}
                       </select>
+                    ) : null}
+
+                    {activeMenuItem ? (
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="space-y-3">
+                          <p className="text-sm font-semibold text-ink">Add-ons</p>
+                          {activeAddOnOptions.length ? (
+                            activeAddOnOptions.map((option) => (
+                              <label
+                                key={option.id}
+                                className={cn(
+                                  "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition",
+                                  activeDraft.additions.includes(option.name)
+                                    ? "border-brand-500 bg-white"
+                                    : "border-slate-200 bg-white/80"
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={activeDraft.additions.includes(option.name)}
+                                  onChange={() => toggleSelection(selectedWeekday, "additions", option.name)}
+                                  className="rounded border-slate-300"
+                                />
+                                <span className="font-medium text-ink">
+                                  {option.name}
+                                  {option.priceDeltaCents ? ` (+${formatCurrency(option.priceDeltaCents)})` : ""}
+                                </span>
+                              </label>
+                            ))
+                          ) : (
+                            <p className="rounded-2xl bg-white/80 px-4 py-3 text-sm text-slate-500">
+                              No add-ons for this item.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <p className="text-sm font-semibold text-ink">Removals</p>
+                          {activeMenuItem.slug === "build-your-own-burger" ? (
+                            <label
+                              className={cn(
+                                "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition",
+                                activeDraft.removals.length === 0
+                                  ? "border-brand-500 bg-white"
+                                  : "border-slate-200 bg-white/80"
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={activeDraft.removals.length === 0}
+                                onChange={() => updateDraft(selectedWeekday, { removals: [] })}
+                                className="rounded border-slate-300"
+                              />
+                              <span className="font-medium text-ink">No changes</span>
+                            </label>
+                          ) : null}
+
+                          {activeRemovalOptions.length ? (
+                            activeRemovalOptions.map((option) => (
+                              <label
+                                key={option.id}
+                                className={cn(
+                                  "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition",
+                                  activeDraft.removals.includes(option.name)
+                                    ? "border-brand-500 bg-white"
+                                    : "border-slate-200 bg-white/80"
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={activeDraft.removals.includes(option.name)}
+                                  onChange={() => toggleSelection(selectedWeekday, "removals", option.name)}
+                                  className="rounded border-slate-300"
+                                />
+                                <span className="font-medium text-ink">{option.name}</span>
+                              </label>
+                            ))
+                          ) : (
+                            <p className="rounded-2xl bg-white/80 px-4 py-3 text-sm text-slate-500">
+                              No removals for this item.
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     ) : null}
 
                     <button

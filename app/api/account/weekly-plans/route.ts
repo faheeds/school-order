@@ -16,6 +16,8 @@ export async function POST(request: Request) {
     const menuItemId = String(body.menuItemId || "");
     const weekday = Number(body.weekday);
     const choice = String(body.choice || "") || null;
+    const additions = Array.isArray(body.additions) ? body.additions.map(String) : [];
+    const removals = Array.isArray(body.removals) ? body.removals.map(String) : [];
 
     const parentChild = await prisma.parentChild.findFirst({
       where: { id: parentChildId, parentUserId, archivedAt: null }
@@ -26,7 +28,8 @@ export async function POST(request: Request) {
     }
 
     const menuItem = await prisma.menuItem.findUnique({
-      where: { id: menuItemId }
+      where: { id: menuItemId },
+      include: { options: true }
     });
 
     if (!menuItem) {
@@ -36,6 +39,21 @@ export async function POST(request: Request) {
     const requiredChoices = getRequiredChoicesForMenuItem(menuItem.slug);
     if (requiredChoices.length && (!choice || !requiredChoices.includes(choice))) {
       return NextResponse.json({ error: `Choose a required option for ${menuItem.name}.` }, { status: 400 });
+    }
+
+    const addOnSet = new Set(
+      menuItem.options.filter((option) => option.optionType === "ADD_ON").map((option) => option.name)
+    );
+    const removalSet = new Set(
+      menuItem.options.filter((option) => option.optionType === "REMOVAL").map((option) => option.name)
+    );
+
+    if (!additions.every((value: string) => addOnSet.has(value))) {
+      return NextResponse.json({ error: `One or more add-ons are invalid for ${menuItem.name}.` }, { status: 400 });
+    }
+
+    if (!removals.every((value: string) => removalSet.has(value))) {
+      return NextResponse.json({ error: `One or more removals are invalid for ${menuItem.name}.` }, { status: 400 });
     }
 
     const existingCount = await prisma.weeklyLunchPlan.count({
@@ -50,8 +68,8 @@ export async function POST(request: Request) {
         weekday,
         menuItemId,
         choice,
-        additions: [],
-        removals: [],
+        additions,
+        removals,
         sortOrder: existingCount,
         isActive: true
       }

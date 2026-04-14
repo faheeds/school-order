@@ -139,6 +139,11 @@ export default async function ParentAccountPage() {
     }),
     prisma.menuItem.findMany({
       where: { isActive: true },
+      include: {
+        options: {
+          orderBy: { sortOrder: "asc" }
+        }
+      },
       orderBy: { name: "asc" }
     }),
     prisma.order.findMany({
@@ -290,7 +295,13 @@ export default async function ParentAccountPage() {
                 id: item.id,
                 name: item.name,
                 slug: item.slug,
-                basePriceCents: item.basePriceCents
+                basePriceCents: item.basePriceCents,
+                options: item.options.map((option) => ({
+                  id: option.id,
+                  name: option.name,
+                  optionType: option.optionType,
+                  priceDeltaCents: option.priceDeltaCents
+                }))
               }))}
               existingPlans={parent.weeklyPlans.map((plan) => ({
                 id: plan.id,
@@ -299,6 +310,8 @@ export default async function ParentAccountPage() {
                 menuItemId: plan.menuItemId,
                 menuItemName: plan.menuItem.name,
                 choice: plan.choice,
+                additions: plan.additions,
+                removals: plan.removals,
                 isActive: plan.isActive,
                 sortOrder: plan.sortOrder
               }))}
