@@ -84,22 +84,29 @@ return <form onSubmit={handleSubmit} className="grid gap-6 pb-28 lg:grid-cols-[m
             <h3 className="text-sm font-semibold text-ink">Available delivery dates</h3>
             <p className="text-xs text-slate-500">{schoolDeliveryDates.length} upcoming</p>
           </div>
-          <input type="hidden" name="deliveryDateId" value={selectedDeliveryDateId}/>
-          <div className="flex snap-x gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-2 lg:overflow-visible xl:grid-cols-3">
-            {schoolDeliveryDates.map((date)=>{const isSelected=selectedDeliveryDateId===date.id;return <button key={date.id} type="button" onClick={()=>{setSelectedDeliveryDateId(date.id);setSelectedMenuItemId("");setSelectedChoice("");setSelectedAdditions([]);setSelectedRemovals([]);setCartItems([]);}} className={cn("min-w-[15rem] snap-start rounded-[1.5rem] border px-4 py-4 text-left transition lg:min-w-0",isSelected?"border-brand-500 bg-brand-50 shadow-sm":"border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50")}>
-              <div className="flex items-start gap-3">
-                <div className={cn("flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl border text-center",isSelected?"border-brand-200 bg-white":"border-slate-200 bg-slate-50")}>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-700">{formatInTimeZone(date.deliveryDate,date.school.timezone,"MMM")}</p>
-                  <p className="mt-1 text-2xl font-bold leading-none text-ink">{formatInTimeZone(date.deliveryDate,date.school.timezone,"d")}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-ink">{formatInTimeZone(date.deliveryDate,date.school.timezone,"EEEE")}</p>
-                  <p className="mt-1 text-sm text-slate-600">{formatInTimeZone(date.deliveryDate,date.school.timezone,"MMMM d")}</p>
-                  <p className="mt-2 text-xs text-slate-500">Cutoff {formatInTimeZone(date.cutoffAt,date.school.timezone,"MMM d h:mm a")}</p>
-                </div>
+          <label className="space-y-2">
+            <span className="text-sm font-medium text-slate-700">Delivery date</span>
+            <select
+              name="deliveryDateId"
+              className="w-full rounded-2xl border-slate-200 bg-white text-sm"
+              value={selectedDeliveryDateId}
+              onChange={(event)=>{setSelectedDeliveryDateId(event.target.value);setSelectedMenuItemId("");setSelectedChoice("");setSelectedAdditions([]);setSelectedRemovals([]);setCartItems([]);}}
+            >
+              {schoolDeliveryDates.map((date)=><option key={date.id} value={date.id}>{formatInTimeZone(date.deliveryDate,date.school.timezone,"EEEE, MMM d")} - cutoff {formatInTimeZone(date.cutoffAt,date.school.timezone,"MMM d h:mm a")}</option>)}
+            </select>
+          </label>
+          {selectedDelivery?<div className="rounded-2xl border border-brand-100 bg-brand-50/60 px-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl border border-brand-200 bg-white text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-700">{formatInTimeZone(selectedDelivery.deliveryDate,selectedDelivery.school.timezone,"MMM")}</p>
+                <p className="mt-1 text-2xl font-bold leading-none text-ink">{formatInTimeZone(selectedDelivery.deliveryDate,selectedDelivery.school.timezone,"d")}</p>
               </div>
-            </button>})}
-          </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink">{formatInTimeZone(selectedDelivery.deliveryDate,selectedDelivery.school.timezone,"EEEE, MMMM d")}</p>
+                <p className="mt-1 text-sm text-slate-600">Ordering closes {formatInTimeZone(selectedDelivery.cutoffAt,selectedDelivery.school.timezone,"MMM d h:mm a zzz")}</p>
+              </div>
+            </div>
+          </div>:null}
         </div>
         <div className="space-y-4 rounded-[1.5rem] bg-slate-50/80 p-4">
           <div className="flex items-center justify-between gap-3">
@@ -127,7 +134,7 @@ return <form onSubmit={handleSubmit} className="grid gap-6 pb-28 lg:grid-cols-[m
       <div className="space-y-6 px-5 py-5 sm:px-6">
         {Object.entries(groupedMenuItems).map(([category,items])=><div key={category} className="space-y-3">
           <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">{category}</h3><p className="text-xs text-slate-400">{items.length} items</p></div>
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid gap-3">
             {items.map((item)=>{const isSelected=selectedMenuItemId===item.id;return <button key={item.id} type="button" onClick={()=>{setSelectedMenuItemId(item.id);setSelectedChoice("");setSelectedAdditions([]);setSelectedRemovals([]);}} className={cn("rounded-[1.5rem] border px-4 py-4 text-left transition",isSelected?"border-brand-500 bg-brand-50 shadow-sm":"border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50")}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold text-ink">{item.name}</p><p className="mt-1 text-sm leading-6 text-slate-600">{getMenuSummary(item)}</p></div><span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-ink">{formatCurrency(item.basePriceCents)}</span></div></button>})}
           </div>
         </div>)}
