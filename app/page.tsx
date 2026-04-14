@@ -47,13 +47,13 @@ export default function HomePage() {
                   href="/order"
                   className="inline-flex items-center justify-center rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
                 >
-                  Start ordering
+                  Order single day
                 </Link>
                 <Link
                   href="/account"
                   className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-ink transition hover:border-brand-300 hover:text-brand-700"
                 >
-                  My account
+                  Order multiple days
                 </Link>
               </div>
 
