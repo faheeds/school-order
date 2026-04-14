@@ -680,6 +680,168 @@ export function OrderForm({
           </div>
         </section>
 
+        {selectedMenuItem ? (
+          <section
+            ref={customizeSectionRef}
+            className="overflow-hidden rounded-[2rem] border border-brand-100 bg-white shadow-soft"
+          >
+            <div className="border-b border-brand-100 bg-brand-50/70 px-4 py-5 sm:px-6 sm:py-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-700">Customize</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink">
+                {selectedMenuItem.name}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Make your selections, then add this item to the cart.
+              </p>
+            </div>
+
+            <div className="space-y-5 px-4 py-5 sm:px-6">
+              {requiredChoices.length ? (
+                <fieldset className="space-y-3">
+                  <legend className="text-sm font-semibold text-ink">Required choice</legend>
+                  <div className="grid gap-2">
+                    {requiredChoices.map((choice) => (
+                      <label
+                        key={choice}
+                        className={cn(
+                          "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition",
+                          selectedChoice === choice
+                            ? "border-brand-500 bg-brand-50"
+                            : "border-slate-200 bg-white"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="requiredChoice"
+                          checked={selectedChoice === choice}
+                          onChange={() => setSelectedChoice(choice)}
+                        />
+                        <span className="font-medium text-ink">{choice}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ) : null}
+
+              <div className="grid gap-5 lg:grid-cols-2">
+                <fieldset className="space-y-3">
+                  <legend className="text-sm font-semibold text-ink">Add-ons</legend>
+                  {addOnOptions.length ? (
+                    addOnOptions.map((option) => (
+                      <label
+                        key={option.id}
+                        className={cn(
+                          "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition",
+                          selectedAdditions.includes(option.name)
+                            ? "border-brand-500 bg-brand-50"
+                            : "border-slate-200 bg-white"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedAdditions.includes(option.name)}
+                          onChange={() =>
+                            toggleSelection(option.name, selectedAdditions, setSelectedAdditions)
+                          }
+                          className="rounded border-slate-300"
+                        />
+                        <span className="font-medium text-ink">
+                          {option.name}
+                          {option.priceDeltaCents ? ` (+${formatCurrency(option.priceDeltaCents)})` : ""}
+                        </span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                      No add-ons for this item.
+                    </p>
+                  )}
+                </fieldset>
+
+                <fieldset className="space-y-3">
+                  <legend className="text-sm font-semibold text-ink">Removals</legend>
+                  {selectedMenuItem.slug === "build-your-own-burger" ? (
+                    <label
+                      className={cn(
+                        "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition",
+                        selectedRemovals.length === 0
+                          ? "border-brand-500 bg-brand-50"
+                          : "border-slate-200 bg-white"
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedRemovals.length === 0}
+                        onChange={() => setSelectedRemovals([])}
+                        className="rounded border-slate-300"
+                      />
+                      <span className="font-medium text-ink">No changes</span>
+                    </label>
+                  ) : null}
+
+                  {removalOptions.length ? (
+                    removalOptions.map((option) => (
+                      <label
+                        key={option.id}
+                        className={cn(
+                          "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition",
+                          selectedRemovals.includes(option.name)
+                            ? "border-brand-500 bg-brand-50"
+                            : "border-slate-200 bg-white"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedRemovals.includes(option.name)}
+                          onChange={() =>
+                            toggleSelection(option.name, selectedRemovals, setSelectedRemovals)
+                          }
+                          className="rounded border-slate-300"
+                        />
+                        <span className="font-medium text-ink">{option.name}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                      No removals for this item.
+                    </p>
+                  )}
+                </fieldset>
+              </div>
+
+              <div className="rounded-[1.75rem] bg-ink px-4 py-4 text-white">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-200">
+                      Ready to add
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-100">
+                      {getChoiceSummary(selectedChoice, selectedAdditions, selectedRemovals)}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-lg font-semibold">{formatCurrency(selectedItemTotalCents)}</p>
+                    <button
+                      type="button"
+                      onClick={addSelectedItemToCart}
+                      className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:bg-brand-100"
+                    >
+                      Add to cart
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <section className="rounded-[2rem] border border-dashed border-slate-200 bg-white/75 px-5 py-10 text-center shadow-soft">
+            <p className="text-sm text-slate-500">
+              Choose a menu item above to see its customization options here.
+            </p>
+          </section>
+        )}
+
         <section className="rounded-[2rem] border border-brand-100 bg-white shadow-soft xl:hidden">
           <div className="border-b border-brand-100 bg-brand-50/70 px-4 py-4">
             <h2 className="text-lg font-semibold text-ink">Cart summary</h2>
