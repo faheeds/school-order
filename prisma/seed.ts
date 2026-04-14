@@ -177,7 +177,8 @@ async function main() {
         { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
         { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
         { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 },
-        { name: "Sauce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 4 }
+        { name: "Sauce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 4 },
+        { name: "Onions", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 5 }
       ]
     },
     {
