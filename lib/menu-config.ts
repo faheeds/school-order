@@ -1,10 +1,9 @@
 export const REQUIRED_CHOICES_BY_SLUG: Record<string, string[]> = {
   "build-your-own-burger": [
-    "No changes",
-    "No Lettuce",
-    "No Tomato",
-    "No Pickles",
-    "No Sauce"
+    "Beef",
+    "Crispy Chicken",
+    "Grilled Chicken",
+    "Beyond Vegan Meat"
   ],
   "gourmet-burgers": [
     "Bacon Cheddar",
