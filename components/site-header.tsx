@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,52 @@ const navItems = [
   { href: "/admin/login", label: "Admin" }
 ];
 
+function LbbLogoMark() {
+  return (
+    <svg viewBox="0 0 320 320" aria-hidden="true" className="h-full w-full">
+      <rect width="320" height="320" rx="36" fill="#D90A17" />
+      <path d="M70 52C110 42 210 40 250 51C262 55 269 63 272 72C259 59 239 55 216 56H106C90 56 78 59 70 65V52Z" fill="white" />
+      <path d="M70 268C110 278 210 280 250 269C262 265 269 257 272 248C259 261 239 265 216 264H106C90 264 78 261 70 255V268Z" fill="white" />
+      <text
+        x="160"
+        y="120"
+        textAnchor="middle"
+        fill="white"
+        fontSize="74"
+        fontWeight="800"
+        fontFamily="Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif"
+        letterSpacing="3"
+      >
+        LOCAL
+      </text>
+      <text
+        x="160"
+        y="182"
+        textAnchor="middle"
+        fill="white"
+        fontSize="68"
+        fontWeight="700"
+        fontStyle="italic"
+        fontFamily="'Brush Script MT', 'Segoe Script', cursive"
+      >
+        Bigger
+      </text>
+      <text
+        x="160"
+        y="248"
+        textAnchor="middle"
+        fill="white"
+        fontSize="74"
+        fontWeight="800"
+        fontFamily="Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif"
+        letterSpacing="3"
+      >
+        BURGER
+      </text>
+    </svg>
+  );
+}
+
 export function SiteHeader() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -19,9 +65,14 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 backdrop-blur">
       <div className="container-app flex items-center justify-between gap-4 py-4">
-        <Link href="/" className="min-w-0" onClick={() => setIsOpen(false)}>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-700">Local Bigger Burger</p>
-          <p className="truncate text-base font-semibold text-ink sm:text-lg">Medina Academy Hot Lunch Preorders</p>
+        <Link href="/" className="flex min-w-0 items-center gap-3" onClick={() => setIsOpen(false)}>
+          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-rose-200/70 shadow-sm sm:h-14 sm:w-14">
+            <LbbLogoMark />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-700">Local Bigger Burger</p>
+            <p className="truncate text-base font-semibold text-ink sm:text-lg">Medina Academy Hot Lunch Preorders</p>
+          </div>
         </Link>
 
         <button
