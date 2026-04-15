@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { assertParentApiRequest } from "@/lib/parent-auth";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
+import { getUpcomingSchoolWeekRange, getWeekdayNumber } from "@/lib/weekly-week";
+
+const WEEKDAY_LABELS: Record<number, string> = {
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
+  7: "Sunday"
+};
 
 export async function POST(request: Request) {
   try {
@@ -20,7 +31,8 @@ export async function POST(request: Request) {
     const removals = Array.isArray(body.removals) ? body.removals.map(String) : [];
 
     const parentChild = await prisma.parentChild.findFirst({
-      where: { id: parentChildId, parentUserId, archivedAt: null }
+      where: { id: parentChildId, parentUserId, archivedAt: null },
+      include: { school: true }
     });
 
     if (!parentChild) {
@@ -34,6 +46,44 @@ export async function POST(request: Request) {
 
     if (!menuItem) {
       return NextResponse.json({ error: "Menu item not found." }, { status: 404 });
+    }
+
+    const now = new Date();
+    const range = getUpcomingSchoolWeekRange(now, parentChild.school.timezone);
+    const deliveryDates = await prisma.deliveryDate.findMany({
+      where: {
+        schoolId: parentChild.schoolId,
+        orderingOpen: true,
+        cutoffAt: { gt: now },
+        deliveryDate: { gte: range.start, lte: range.end }
+      },
+      include: {
+        menuAvailability: {
+          where: { isAvailable: true },
+          select: { menuItemId: true }
+        }
+      },
+      orderBy: { deliveryDate: "asc" }
+    });
+
+    const weekdayLabel = WEEKDAY_LABELS[weekday] ?? `Day ${weekday}`;
+    const matchingDeliveryDate = deliveryDates.find(
+      (deliveryDate) => getWeekdayNumber(deliveryDate.deliveryDate, parentChild.school.timezone) === weekday
+    );
+
+    if (!matchingDeliveryDate) {
+      return NextResponse.json(
+        { error: `Cannot add meals for ${weekdayLabel} because no delivery date is scheduled yet.` },
+        { status: 400 }
+      );
+    }
+
+    const availableMenuItemIds = new Set(matchingDeliveryDate.menuAvailability.map((entry) => entry.menuItemId));
+    if (!availableMenuItemIds.has(menuItemId)) {
+      return NextResponse.json(
+        { error: `${menuItem.name} is not available for ${weekdayLabel}. Choose a different item.` },
+        { status: 400 }
+      );
     }
 
     const requiredChoices = getRequiredChoicesForMenuItem(menuItem.slug);

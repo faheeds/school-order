@@ -1,7 +1,8 @@
 import { OrderStatus, PaymentStatus, WeeklyCheckoutStatus } from "@prisma/client";
-import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { formatInTimeZone } from "date-fns-tz";
 import { prisma } from "@/lib/db";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
+import { getUpcomingSchoolWeekRange, getWeekdayNumber } from "@/lib/weekly-week";
 
 const WEEKDAY_LABELS: Record<number, string> = {
   1: "Monday",
@@ -13,31 +14,8 @@ const WEEKDAY_LABELS: Record<number, string> = {
   7: "Sunday"
 };
 
-function getWeekdayNumber(date: Date, timezone: string) {
-  return Number(formatInTimeZone(date, timezone, "i"));
-}
-
 function buildOrderNumber(timezone: string) {
   return `SL-${formatInTimeZone(new Date(), timezone, "yyyyMMdd")}-${Math.floor(1000 + Math.random() * 9000)}`;
-}
-
-function buildLocalDayStart(date: Date, timezone: string) {
-  return fromZonedTime(`${formatInTimeZone(date, timezone, "yyyy-MM-dd")} 00:00:00`, timezone);
-}
-
-function getUpcomingSchoolWeekRange(now: Date, timezone: string) {
-  const weekday = getWeekdayNumber(now, timezone);
-  const daysUntilNextMonday = weekday === 1 ? 7 : 8 - weekday;
-  const nextMonday = new Date(now);
-  nextMonday.setDate(nextMonday.getDate() + daysUntilNextMonday);
-
-  const nextFriday = new Date(nextMonday);
-  nextFriday.setDate(nextFriday.getDate() + 4);
-
-  return {
-    start: buildLocalDayStart(nextMonday, timezone),
-    end: fromZonedTime(`${formatInTimeZone(nextFriday, timezone, "yyyy-MM-dd")} 23:59:59`, timezone)
-  };
 }
 
 function distributeExtraCents(baseAmounts: number[], totalWithExtra: number) {

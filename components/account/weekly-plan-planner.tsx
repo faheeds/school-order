@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
 import { cn, formatCurrency, formatList } from "@/lib/utils";
@@ -42,6 +42,7 @@ type WeeklyPlanSummary = {
   weekday: number;
   menuItemId: string;
   menuItemName: string;
+  menuItemSlug: string;
   choice: string | null;
   additions: string[];
   removals: string[];
@@ -49,9 +50,16 @@ type WeeklyPlanSummary = {
   sortOrder: number;
 };
 
+type WeeklyAvailability = {
+  eligibleWeekdays: number[];
+  menuItemIdsByWeekday: Record<string, string[]>;
+  deliveryDateIsoByWeekday: Record<string, string>;
+};
+
 type PlannerProps = {
   children: ChildSummary[];
   menuItems: MenuItemSummary[];
+  weeklyAvailabilityBySchoolId: Record<string, WeeklyAvailability>;
   existingPlans: WeeklyPlanSummary[];
 };
 
@@ -73,7 +81,7 @@ function createEmptyDraft(): DraftValue {
   };
 }
 
-export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: PlannerProps) {
+export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySchoolId, existingPlans }: PlannerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedChildId, setSelectedChildId] = useState(children[0]?.id ?? "");
@@ -88,6 +96,9 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
   });
 
   const selectedChild = children.find((child) => child.id === selectedChildId);
+  const activeAvailability = selectedChild ? weeklyAvailabilityBySchoolId[selectedChild.schoolId] : undefined;
+  const eligibleWeekdays = activeAvailability?.eligibleWeekdays ?? [];
+  const eligibleWeekdaysSet = useMemo(() => new Set(eligibleWeekdays), [eligibleWeekdays]);
   const plansByWeekday = useMemo(() => {
     const filtered = existingPlans.filter((plan) => plan.parentChildId === selectedChildId);
     return weekdays.reduce<Record<number, WeeklyPlanSummary[]>>((acc, weekday) => {
@@ -98,9 +109,33 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
     }, {});
   }, [existingPlans, selectedChildId]);
 
+  const visibleWeekdays = useMemo(() => {
+    const plannedWeekdays = new Set(
+      existingPlans.filter((plan) => plan.parentChildId === selectedChildId).map((plan) => plan.weekday)
+    );
+    return weekdays.filter((weekday) => eligibleWeekdaysSet.has(weekday.value) || plannedWeekdays.has(weekday.value));
+  }, [eligibleWeekdaysSet, existingPlans, selectedChildId]);
+
+  useEffect(() => {
+    if (!visibleWeekdays.length) {
+      setSelectedWeekday(1);
+      return;
+    }
+
+    if (!visibleWeekdays.some((weekday) => weekday.value === selectedWeekday)) {
+      setSelectedWeekday(visibleWeekdays[0].value);
+    }
+  }, [selectedChildId, selectedWeekday, visibleWeekdays]);
+
   const activeDayPlans = plansByWeekday[selectedWeekday] ?? [];
   const activeDraft = drafts[selectedWeekday];
-  const activeMenuItem = menuItems.find((item) => item.id === activeDraft.menuItemId);
+  const menuItemIdsForActiveDay = activeAvailability?.menuItemIdsByWeekday[String(selectedWeekday)] ?? [];
+  const menuItemIdsForActiveDaySet = useMemo(() => new Set(menuItemIdsForActiveDay), [menuItemIdsForActiveDay]);
+  const availableMenuItemsForActiveDay = useMemo(
+    () => menuItems.filter((item) => menuItemIdsForActiveDaySet.has(item.id)),
+    [menuItemIdsForActiveDaySet, menuItems]
+  );
+  const activeMenuItem = availableMenuItemsForActiveDay.find((item) => item.id === activeDraft.menuItemId);
   const activeRequiredChoices = activeMenuItem ? getRequiredChoicesForMenuItem(activeMenuItem.slug) : [];
   const activeAddOnOptions =
     activeMenuItem?.options.filter(
@@ -108,6 +143,8 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
     ) ?? [];
   const activeRemovalOptions =
     activeMenuItem?.options.filter((option) => option.optionType === "REMOVAL") ?? [];
+  const isActiveWeekdayEligible = eligibleWeekdaysSet.has(selectedWeekday);
+  const canAddForDay = isActiveWeekdayEligible && menuItemIdsForActiveDay.length > 0;
 
   function updateDraft(weekday: number, next: Partial<DraftValue>) {
     setDrafts((current) => ({
@@ -174,8 +211,20 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
       return;
     }
 
+    if (!eligibleWeekdaysSet.has(weekday)) {
+      setError("This day is not scheduled for delivery yet. Check with the admin dashboard before adding meals.");
+      return;
+    }
+
+    const menuItemIdsForDay = activeAvailability?.menuItemIdsByWeekday[String(weekday)] ?? [];
+    if (!menuItemIdsForDay.length) {
+      setError("No menu items are available for this delivery day yet.");
+      return;
+    }
+
     const draft = drafts[weekday];
-    const menuItem = menuItems.find((item) => item.id === draft.menuItemId);
+    const menuItemIdsForDaySet = new Set(menuItemIdsForDay);
+    const menuItem = menuItems.find((item) => item.id === draft.menuItemId && menuItemIdsForDaySet.has(item.id));
 
     if (!menuItem) {
       setError(`Choose an item for ${weekdays.find((day) => day.value === weekday)?.label}.`);
@@ -219,10 +268,18 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
                     type="button"
                     onClick={() => {
                       setSelectedChildId(child.id);
+                      const childEligibleWeekdays = new Set(
+                        weeklyAvailabilityBySchoolId[child.schoolId]?.eligibleWeekdays ?? []
+                      );
+                      const hasPlanForWeekday = (weekday: number) =>
+                        existingPlans.some((plan) => plan.parentChildId === child.id && plan.weekday === weekday);
+                      const childVisibleWeekdays = weekdays.filter(
+                        (weekday) => childEligibleWeekdays.has(weekday.value) || hasPlanForWeekday(weekday.value)
+                      );
                       const firstDayWithPlans =
-                        weekdays.find((day) =>
-                          existingPlans.some((plan) => plan.parentChildId === child.id && plan.weekday === day.value)
-                        )?.value ?? 1;
+                        childVisibleWeekdays.find((day) => hasPlanForWeekday(day.value))?.value ??
+                        childVisibleWeekdays[0]?.value ??
+                        1;
                       setSelectedWeekday(firstDayWithPlans);
                       setError("");
                     }}
@@ -250,29 +307,45 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
                 </p>
               </div>
 
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {weekdays.map((weekday) => {
-                  const count = plansByWeekday[weekday.value]?.length ?? 0;
-                  const isActive = selectedWeekday === weekday.value;
-                  return (
-                    <button
-                      key={weekday.value}
-                      type="button"
-                      onClick={() => {
-                        setSelectedWeekday(weekday.value);
-                        setError("");
-                      }}
-                      className={cn(
-                        "min-w-[110px] rounded-2xl border px-4 py-3 text-left transition",
-                        isActive ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-200"
-                      )}
-                    >
-                      <p className="text-sm font-semibold text-ink">{weekday.label}</p>
-                      <p className="mt-1 text-xs text-slate-500">{count ? `${count} planned` : "Open"}</p>
-                    </button>
-                  );
-                })}
-              </div>
+              {visibleWeekdays.length ? (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {visibleWeekdays.map((weekday) => {
+                    const count = plansByWeekday[weekday.value]?.length ?? 0;
+                    const isActive = selectedWeekday === weekday.value;
+                    const isEligible = eligibleWeekdaysSet.has(weekday.value);
+                    const menuCount = activeAvailability?.menuItemIdsByWeekday[String(weekday.value)]?.length ?? 0;
+                    return (
+                      <button
+                        key={weekday.value}
+                        type="button"
+                        onClick={() => {
+                          setSelectedWeekday(weekday.value);
+                          setError("");
+                        }}
+                        className={cn(
+                          "min-w-[110px] rounded-2xl border px-4 py-3 text-left transition",
+                          isActive ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-200"
+                        )}
+                      >
+                        <p className="text-sm font-semibold text-ink">{weekday.label}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {count
+                            ? `${count} planned`
+                            : !isEligible
+                              ? "Not scheduled"
+                              : menuCount
+                                ? "Open"
+                                : "No menu"}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-600">
+                  No delivery dates are available for the upcoming week yet.
+                </p>
+              )}
 
               <div className="rounded-3xl border border-slate-100 p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -293,45 +366,54 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
 
                 <div className="mt-4 space-y-3">
                   {activeDayPlans.length ? (
-                    activeDayPlans.map((plan) => (
-                      <div key={plan.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1 text-sm text-slate-600">
-                            <p className="font-semibold text-ink">{plan.menuItemName}</p>
-                            <p>Choice: {plan.choice || "None"}</p>
-                            <p>Add-ons: {formatList(plan.additions)}</p>
-                            <p>Removals: {plan.removals.length ? plan.removals.join(", ") : "No changes"}</p>
-                            <p>Status: {plan.isActive ? "Active" : "Paused"}</p>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void runMutation({
-                                  method: "PATCH",
-                                  body: { planId: plan.id, isActive: !plan.isActive }
-                                })
-                              }
-                              className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-ink"
-                            >
-                              {plan.isActive ? "Pause" : "Resume"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void runMutation({
-                                  method: "DELETE",
-                                  body: { planId: plan.id }
-                                })
-                              }
-                              className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700"
-                            >
-                              Remove
-                            </button>
+                    activeDayPlans.map((plan) => {
+                      const requiredChoices = getRequiredChoicesForMenuItem(plan.menuItemSlug);
+                      const missingRequiredChoice =
+                        requiredChoices.length && (!plan.choice || !requiredChoices.includes(plan.choice));
+
+                      return (
+                        <div key={plan.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1 text-sm text-slate-600">
+                              <p className="font-semibold text-ink">{plan.menuItemName}</p>
+                              <p>Choice: {plan.choice || "None"}</p>
+                              {missingRequiredChoice ? (
+                                <p className="font-semibold text-rose-700">Missing required choice (remove and re-add).</p>
+                              ) : null}
+                              <p>Add-ons: {formatList(plan.additions)}</p>
+                              <p>Removals: {plan.removals.length ? plan.removals.join(", ") : "No changes"}</p>
+                              <p>Status: {plan.isActive ? "Active" : "Paused"}</p>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void runMutation({
+                                    method: "PATCH",
+                                    body: { planId: plan.id, isActive: !plan.isActive }
+                                  })
+                                }
+                                className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-ink"
+                              >
+                                {plan.isActive ? "Pause" : "Resume"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void runMutation({
+                                    method: "DELETE",
+                                    body: { planId: plan.id }
+                                  })
+                                }
+                                className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700"
+                              >
+                                Remove
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <p className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">Nothing saved for this day yet.</p>
                   )}
@@ -341,10 +423,21 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
                   <p className="text-sm font-semibold text-ink">
                     Add an item for {weekdays.find((day) => day.value === selectedWeekday)?.label}
                   </p>
+                  {!isActiveWeekdayEligible ? (
+                    <p className="mt-2 rounded-2xl bg-white/80 px-4 py-3 text-sm text-slate-600">
+                      No delivery date is scheduled for this weekday yet. Add a delivery date in the admin dashboard to open ordering.
+                    </p>
+                  ) : null}
+                  {isActiveWeekdayEligible && !menuItemIdsForActiveDay.length ? (
+                    <p className="mt-2 rounded-2xl bg-white/80 px-4 py-3 text-sm text-slate-600">
+                      This delivery date is open, but no menu items are marked as available yet.
+                    </p>
+                  ) : null}
                   <div className="mt-3 space-y-3">
                     <select
                       className="w-full rounded-2xl border-slate-200"
                       value={activeDraft.menuItemId}
+                      disabled={!canAddForDay}
                       onChange={(event) =>
                         updateDraft(selectedWeekday, {
                           menuItemId: event.target.value,
@@ -354,8 +447,8 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
                         })
                       }
                     >
-                      <option value="">Choose menu item</option>
-                      {menuItems.map((item) => (
+                      <option value="">{canAddForDay ? "Choose menu item" : "Menu items unavailable"}</option>
+                      {availableMenuItemsForActiveDay.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.name} - {formatCurrency(item.basePriceCents)}
                         </option>
@@ -464,7 +557,7 @@ export function WeeklyPlanPlanner({ children, menuItems, existingPlans }: Planne
                     <button
                       type="button"
                       onClick={() => handleAdd(selectedWeekday)}
-                      disabled={isPending}
+                      disabled={isPending || !canAddForDay}
                       className="rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
                     >
                       Add item to {weekdays.find((day) => day.value === selectedWeekday)?.label}

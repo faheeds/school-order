@@ -10,6 +10,7 @@ import { prisma } from "@/lib/db";
 import { signOut } from "@/lib/auth";
 import { requireParent } from "@/lib/parent-auth";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
+import { getUpcomingSchoolWeekRange, getWeekdayNumber } from "@/lib/weekly-week";
 
 export default async function ParentAccountPage() {
   const session = await requireParent();
@@ -163,6 +164,67 @@ export default async function ParentAccountPage() {
     redirect("/account/sign-in");
   }
 
+  const now = new Date();
+  const schoolsById = new Map(parent.children.map((child) => [child.schoolId, child.school] as const));
+  const uniqueSchoolIds = [...new Set(parent.children.map((child) => child.schoolId))];
+  const weeklyAvailabilityEntries = await Promise.all(
+    uniqueSchoolIds.map(async (schoolId) => {
+      const school = schoolsById.get(schoolId);
+      if (!school) {
+        return null;
+      }
+
+      const range = getUpcomingSchoolWeekRange(now, school.timezone);
+      const deliveryDates = await prisma.deliveryDate.findMany({
+        where: {
+          schoolId,
+          orderingOpen: true,
+          cutoffAt: { gt: now },
+          deliveryDate: { gte: range.start, lte: range.end }
+        },
+        include: {
+          menuAvailability: {
+            where: { isAvailable: true },
+            select: { menuItemId: true }
+          }
+        },
+        orderBy: { deliveryDate: "asc" }
+      });
+
+      const eligibleWeekdays: number[] = [];
+      const menuItemIdsByWeekday: Record<string, string[]> = {};
+      const deliveryDateIsoByWeekday: Record<string, string> = {};
+
+      for (const deliveryDate of deliveryDates) {
+        const weekday = getWeekdayNumber(deliveryDate.deliveryDate, school.timezone);
+        if (weekday < 1 || weekday > 7) {
+          continue;
+        }
+
+        const key = String(weekday);
+        if (menuItemIdsByWeekday[key]) {
+          continue;
+        }
+
+        eligibleWeekdays.push(weekday);
+        menuItemIdsByWeekday[key] = [...new Set(deliveryDate.menuAvailability.map((entry) => entry.menuItemId))].sort();
+        deliveryDateIsoByWeekday[key] = deliveryDate.deliveryDate.toISOString();
+      }
+
+      return [
+        schoolId,
+        {
+          eligibleWeekdays: [...new Set(eligibleWeekdays)].sort((a, b) => a - b),
+          menuItemIdsByWeekday,
+          deliveryDateIsoByWeekday
+        }
+      ] as const;
+    })
+  );
+  const weeklyAvailabilityBySchoolId = Object.fromEntries(
+    weeklyAvailabilityEntries.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+  );
+
   const activeWeeklyPlanCount = parent.weeklyPlans.filter((plan) => plan.isActive).length;
 
   return (
@@ -303,12 +365,14 @@ export default async function ParentAccountPage() {
                   priceDeltaCents: option.priceDeltaCents
                 }))
               }))}
+              weeklyAvailabilityBySchoolId={weeklyAvailabilityBySchoolId}
               existingPlans={parent.weeklyPlans.map((plan) => ({
                 id: plan.id,
                 parentChildId: plan.parentChildId,
                 weekday: plan.weekday,
                 menuItemId: plan.menuItemId,
                 menuItemName: plan.menuItem.name,
+                menuItemSlug: plan.menuItem.slug,
                 choice: plan.choice,
                 additions: plan.additions,
                 removals: plan.removals,
