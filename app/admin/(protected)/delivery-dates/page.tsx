@@ -222,8 +222,12 @@ async function removeScheduledDates(formData: FormData) {
       continue;
     }
 
-    await prisma.deliveryDate.delete({
-      where: { id: existing.id }
+    await prisma.deliveryDate.update({
+      where: { id: existing.id },
+      data: {
+        orderingOpen: false,
+        notes: mergeNotes(existing.notes, "Removed from active schedule.")
+      }
     });
   }
 
@@ -286,8 +290,12 @@ async function removeSingleDeliveryDate(formData: FormData) {
       }
     });
   } else {
-    await prisma.deliveryDate.delete({
-      where: { id: deliveryDateId }
+    await prisma.deliveryDate.update({
+      where: { id: deliveryDateId },
+      data: {
+        orderingOpen: false,
+        notes: mergeNotes(existing.notes, "Removed from active schedule.")
+      }
     });
   }
 
@@ -357,7 +365,7 @@ export default async function DeliveryDatesPage() {
       <SectionTitle
         eyebrow="Delivery Dates"
         title="Schedule and manage delivery dates"
-        description="Add or remove scheduled dates for one school or many schools at once, then fine-tune each date’s cutoff time and menu availability below."
+        description="Add or remove scheduled dates for one school or many schools at once, then fine-tune each date's cutoff time and menu availability below."
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">

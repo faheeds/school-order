@@ -54,6 +54,7 @@ type WeeklyAvailability = {
   eligibleWeekdays: number[];
   menuItemIdsByWeekday: Record<string, string[]>;
   deliveryDateIsoByWeekday: Record<string, string>;
+  deliveryDateLabelByWeekday: Record<string, string>;
 };
 
 type PlannerProps = {
@@ -99,6 +100,7 @@ export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySch
   const activeAvailability = selectedChild ? weeklyAvailabilityBySchoolId[selectedChild.schoolId] : undefined;
   const eligibleWeekdays = activeAvailability?.eligibleWeekdays ?? [];
   const eligibleWeekdaysSet = useMemo(() => new Set(eligibleWeekdays), [eligibleWeekdays]);
+  const selectedDateLabel = activeAvailability?.deliveryDateLabelByWeekday[String(selectedWeekday)] ?? "";
   const plansByWeekday = useMemo(() => {
     const filtered = existingPlans.filter((plan) => plan.parentChildId === selectedChildId);
     return weekdays.reduce<Record<number, WeeklyPlanSummary[]>>((acc, weekday) => {
@@ -314,6 +316,7 @@ export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySch
                     const isActive = selectedWeekday === weekday.value;
                     const isEligible = eligibleWeekdaysSet.has(weekday.value);
                     const menuCount = activeAvailability?.menuItemIdsByWeekday[String(weekday.value)]?.length ?? 0;
+                    const dateLabel = activeAvailability?.deliveryDateLabelByWeekday[String(weekday.value)] ?? "";
                     return (
                       <button
                         key={weekday.value}
@@ -337,6 +340,7 @@ export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySch
                                 ? "Open"
                                 : "No menu"}
                         </p>
+                        {dateLabel ? <p className="mt-1 text-xs font-semibold text-slate-600">{dateLabel}</p> : null}
                       </button>
                     );
                   })}
@@ -352,6 +356,7 @@ export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySch
                   <div>
                     <p className="text-lg font-semibold text-ink">
                       {weekdays.find((day) => day.value === selectedWeekday)?.label}
+                      {selectedDateLabel ? ` (${selectedDateLabel})` : ""}
                     </p>
                     <p className="text-sm text-slate-500">
                       {activeDayPlans.length
