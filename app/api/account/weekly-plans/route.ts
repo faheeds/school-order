@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { assertParentApiRequest } from "@/lib/parent-auth";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
-import { getUpcomingSchoolWeekRange, getWeekdayNumber } from "@/lib/weekly-week";
+import { getUpcomingOrderingWindowRange, getWeekdayNumber } from "@/lib/weekly-week";
 
 const WEEKDAY_LABELS: Record<number, string> = {
   1: "Monday",
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
-    const range = getUpcomingSchoolWeekRange(now, parentChild.school.timezone);
+    const range = getUpcomingOrderingWindowRange(now, parentChild.school.timezone);
     const deliveryDates = await prisma.deliveryDate.findMany({
       where: {
         schoolId: parentChild.schoolId,

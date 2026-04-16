@@ -2,7 +2,7 @@ import { OrderStatus, PaymentStatus, WeeklyCheckoutStatus } from "@prisma/client
 import { formatInTimeZone } from "date-fns-tz";
 import { prisma } from "@/lib/db";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
-import { getUpcomingSchoolWeekRange, getWeekdayNumber } from "@/lib/weekly-week";
+import { getUpcomingOrderingWindowRange, getWeekdayNumber } from "@/lib/weekly-week";
 
 const WEEKDAY_LABELS: Record<number, string> = {
   1: "Monday",
@@ -73,7 +73,7 @@ export async function createWeeklyCheckoutBatch(parentUserId: string) {
 
   const now = new Date();
   const primaryTimezone = parent.weeklyPlans[0]?.school.timezone ?? "America/Los_Angeles";
-  const targetRange = getUpcomingSchoolWeekRange(now, primaryTimezone);
+  const targetRange = getUpcomingOrderingWindowRange(now, primaryTimezone);
   const schoolIds = [...new Set(parent.weeklyPlans.map((plan) => plan.schoolId))];
 
   const allWeekDeliveryDates = await prisma.deliveryDate.findMany({

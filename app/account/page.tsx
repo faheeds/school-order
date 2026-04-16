@@ -10,7 +10,7 @@ import { prisma } from "@/lib/db";
 import { signOut } from "@/lib/auth";
 import { requireParent } from "@/lib/parent-auth";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
-import { getUpcomingSchoolWeekRange, getWeekdayNumber } from "@/lib/weekly-week";
+import { getUpcomingOrderingWindowRange, getWeekdayNumber } from "@/lib/weekly-week";
 
 export default async function ParentAccountPage() {
   const session = await requireParent();
@@ -174,7 +174,7 @@ export default async function ParentAccountPage() {
         return null;
       }
 
-      const range = getUpcomingSchoolWeekRange(now, school.timezone);
+      const range = getUpcomingOrderingWindowRange(now, school.timezone);
       const deliveryDates = await prisma.deliveryDate.findMany({
         where: {
           schoolId,
