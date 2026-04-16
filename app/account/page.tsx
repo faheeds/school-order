@@ -194,6 +194,7 @@ export default async function ParentAccountPage() {
       const eligibleWeekdays: number[] = [];
       const menuItemIdsByWeekday: Record<string, string[]> = {};
       const deliveryDateIsoByWeekday: Record<string, string> = {};
+      const deliveryDateLabelByWeekday: Record<string, string> = {};
 
       for (const deliveryDate of deliveryDates) {
         const weekday = getWeekdayNumber(deliveryDate.deliveryDate, school.timezone);
@@ -209,6 +210,7 @@ export default async function ParentAccountPage() {
         eligibleWeekdays.push(weekday);
         menuItemIdsByWeekday[key] = [...new Set(deliveryDate.menuAvailability.map((entry) => entry.menuItemId))].sort();
         deliveryDateIsoByWeekday[key] = deliveryDate.deliveryDate.toISOString();
+        deliveryDateLabelByWeekday[key] = formatInTimeZone(deliveryDate.deliveryDate, school.timezone, "MM/dd");
       }
 
       return [
@@ -216,7 +218,8 @@ export default async function ParentAccountPage() {
         {
           eligibleWeekdays: [...new Set(eligibleWeekdays)].sort((a, b) => a - b),
           menuItemIdsByWeekday,
-          deliveryDateIsoByWeekday
+          deliveryDateIsoByWeekday,
+          deliveryDateLabelByWeekday
         }
       ] as const;
     })
