@@ -49,8 +49,6 @@ type SavedChild = {
   schoolId: string;
   studentName: string;
   grade: string;
-  allergyNotes: string;
-  dietaryNotes: string;
 };
 
 type InitialParentProfile = {
@@ -59,7 +57,6 @@ type InitialParentProfile = {
   parentChildId: string;
   studentName: string;
   grade: string;
-  allergyNotes: string;
 };
 
 type OrderFormProps = {
@@ -172,7 +169,6 @@ export function OrderForm({
   const [parentEmail, setParentEmail] = useState(initialParentProfile?.parentEmail ?? "");
   const [studentName, setStudentName] = useState(initialParentProfile?.studentName ?? "");
   const [grade, setGrade] = useState(initialParentProfile?.grade ?? "");
-  const [allergyNotes, setAllergyNotes] = useState(initialParentProfile?.allergyNotes ?? "");
 
   const schools = useMemo(
     () =>
@@ -275,7 +271,6 @@ export function OrderForm({
     });
     setStudentName(child.studentName);
     setGrade(child.grade);
-    setAllergyNotes(child.allergyNotes);
   }, [deliveryDates, savedChildren, selectedParentChildId]);
 
   useEffect(() => {
@@ -311,7 +306,6 @@ export function OrderForm({
     setSelectedParentChildId("");
     setStudentName("");
     setGrade("");
-    setAllergyNotes("");
     window.requestAnimationFrame(() => studentNameInputRef.current?.focus());
   }
 
@@ -408,7 +402,7 @@ export function OrderForm({
         additions: item.additions,
         removals: item.removals
       })),
-      allergyNotes,
+      allergyNotes: "",
       dietaryNotes: null,
       specialInstructions: null
     };
@@ -524,29 +518,6 @@ export function OrderForm({
               </div>
 
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-slate-700">Parent name</span>
-                  <input
-                    name="parentName"
-                    required
-                    className="w-full rounded-2xl border-slate-200 bg-white text-sm"
-                    value={parentName}
-                    onChange={(event) => setParentName(event.target.value)}
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-slate-700">Parent email</span>
-                  <input
-                    type="email"
-                    name="parentEmail"
-                    required
-                    className="w-full rounded-2xl border-slate-200 bg-white text-sm"
-                    value={parentEmail}
-                    onChange={(event) => setParentEmail(event.target.value)}
-                  />
-                </label>
-
                 {savedChildren.length ? (
                   <label className="space-y-2 lg:col-span-2">
                     <span className="text-sm font-medium text-slate-700">Saved child</span>
@@ -574,6 +545,29 @@ export function OrderForm({
                 ) : null}
 
                 <label className="space-y-2">
+                  <span className="text-sm font-medium text-slate-700">Parent name</span>
+                  <input
+                    name="parentName"
+                    required
+                    className="w-full rounded-2xl border-slate-200 bg-white text-sm"
+                    value={parentName}
+                    onChange={(event) => setParentName(event.target.value)}
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-sm font-medium text-slate-700">Parent email</span>
+                  <input
+                    type="email"
+                    name="parentEmail"
+                    required
+                    className="w-full rounded-2xl border-slate-200 bg-white text-sm"
+                    value={parentEmail}
+                    onChange={(event) => setParentEmail(event.target.value)}
+                  />
+                </label>
+
+                <label className="space-y-2">
                   <span className="text-sm font-medium text-slate-700">Student name</span>
                   <input
                     ref={studentNameInputRef}
@@ -593,17 +587,6 @@ export function OrderForm({
                     className="w-full rounded-2xl border-slate-200 bg-white text-sm"
                     value={grade}
                     onChange={(event) => setGrade(event.target.value)}
-                  />
-                </label>
-
-                <label className="space-y-2 lg:col-span-2">
-                  <span className="text-sm font-medium text-slate-700">Allergy notes</span>
-                  <textarea
-                    name="allergyNotes"
-                    rows={3}
-                    className="w-full rounded-2xl border-slate-200 bg-white text-sm"
-                    value={allergyNotes}
-                    onChange={(event) => setAllergyNotes(event.target.value)}
                   />
                 </label>
               </div>

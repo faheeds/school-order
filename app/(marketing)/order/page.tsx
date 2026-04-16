@@ -145,9 +145,7 @@ export default async function OrderPage({
                 id: child.id,
                 schoolId: child.schoolId,
                 studentName: child.studentName,
-                grade: child.grade,
-                allergyNotes: child.allergyNotes ?? "",
-                dietaryNotes: child.dietaryNotes ?? ""
+                grade: child.grade
               })) ?? []
             }
             initialParentProfile={{
@@ -155,11 +153,7 @@ export default async function OrderPage({
               parentEmail: parent?.email ?? "",
               parentChildId: reorderOrder?.parentChildId ?? parent?.children[0]?.id ?? "",
               studentName: reorderOrder?.student.studentName ?? "",
-              grade: reorderOrder?.student.grade ?? "",
-              allergyNotes:
-                reorderOrder?.items.map((item) => item.allergyNotes).find(Boolean) ??
-                reorderOrder?.student.allergyNotes ??
-                ""
+              grade: reorderOrder?.student.grade ?? ""
             }}
             initialSchoolId={reorderSchoolId ?? parent?.children[0]?.schoolId ?? ""}
             initialDeliveryDateId={initialDeliveryDateId ?? ""}
