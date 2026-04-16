@@ -35,7 +35,7 @@ export async function sendOrderConfirmationEmail(orderId: string) {
 
     if (resend && env.EMAIL_FROM) {
       const result = await resend.emails.send({
-        from: env.EMAIL_FROM,
+        from: env.EMAIL_FROM_NAME ? `${env.EMAIL_FROM_NAME} <${env.EMAIL_FROM}>` : env.EMAIL_FROM,
         to: order.parentEmail,
         subject: message.subject,
         text: message.text,
