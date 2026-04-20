@@ -234,18 +234,52 @@ async function updateDeliveryDateSettings(formData: FormData) {
   "use server";
 
   const deliveryDateId = String(formData.get("deliveryDateId") ?? "");
+  const cutoffMode = String(formData.get("cutoffMode") ?? "");
+  const cutoffTime = String(formData.get("cutoffTime") ?? "");
   const cutoffAt = String(formData.get("cutoffAt") ?? "");
   const orderingOpen = formData.get("orderingOpen") === "on";
   const notes = String(formData.get("notes") ?? "").trim();
 
-  if (!deliveryDateId || !cutoffAt) {
+  if (!deliveryDateId) {
     return;
+  }
+
+  const existing = await prisma.deliveryDate.findUnique({
+    where: { id: deliveryDateId },
+    select: {
+      cutoffAt: true,
+      school: { select: { timezone: true } }
+    }
+  });
+
+  if (!existing) {
+    return;
+  }
+
+  const timezone = existing.school.timezone || DEFAULT_TIMEZONE;
+  const mode = cutoffMode || (cutoffTime ? "time" : "datetime");
+
+  let nextCutoffAt: Date;
+
+  if (mode === "time") {
+    if (!cutoffTime) {
+      return;
+    }
+
+    const cutoffDay = formatInTimeZone(existing.cutoffAt, timezone, "yyyy-MM-dd");
+    nextCutoffAt = fromZonedTime(`${cutoffDay} ${cutoffTime}:00`, timezone);
+  } else {
+    if (!cutoffAt) {
+      return;
+    }
+
+    nextCutoffAt = fromZonedTime(cutoffAt.replace("T", " ") + ":00", timezone);
   }
 
   await prisma.deliveryDate.update({
     where: { id: deliveryDateId },
     data: {
-      cutoffAt: fromZonedTime(cutoffAt.replace("T", " ") + ":00", DEFAULT_TIMEZONE),
+      cutoffAt: nextCutoffAt,
       orderingOpen,
       notes: notes || null
     }
@@ -501,18 +535,48 @@ export default async function DeliveryDatesPage() {
                 </div>
               </div>
 
-              <form action={updateDeliveryDateSettings} className="grid gap-3 rounded-2xl bg-slate-50/80 p-4 lg:grid-cols-[14rem_1fr_auto]">
+              <form action={updateDeliveryDateSettings} className="grid gap-3 rounded-2xl bg-slate-50/80 p-4 lg:grid-cols-[22rem_1fr_auto]">
                 <input type="hidden" name="deliveryDateId" value={date.id} />
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-slate-700">Adjust cutoff time</span>
-                  <input
-                    type="datetime-local"
-                    name="cutoffAt"
-                    defaultValue={formatInTimeZone(date.cutoffAt, DEFAULT_TIMEZONE, "yyyy-MM-dd'T'HH:mm")}
-                    className="rounded-2xl border-slate-200 text-sm"
-                    required
-                  />
-                </label>
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-slate-700">Cutoff</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-2">
+                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Update</span>
+                      <select
+                        name="cutoffMode"
+                        defaultValue="time"
+                        className="w-full rounded-2xl border-slate-200 bg-white text-sm"
+                      >
+                        <option value="time">Time only (keep date)</option>
+                        <option value="datetime">Date &amp; time</option>
+                      </select>
+                    </label>
+                    <label className="space-y-2">
+                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Time (local)</span>
+                      <input
+                        type="time"
+                        step={60}
+                        name="cutoffTime"
+                        defaultValue={formatInTimeZone(date.cutoffAt, date.school.timezone, "HH:mm")}
+                        className="w-full rounded-2xl border-slate-200 bg-white text-sm"
+                      />
+                    </label>
+                  </div>
+                  <details className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Advanced: edit date &amp; time</summary>
+                    <div className="mt-3 space-y-2">
+                      <input
+                        type="datetime-local"
+                        name="cutoffAt"
+                        defaultValue={formatInTimeZone(date.cutoffAt, date.school.timezone, "yyyy-MM-dd'T'HH:mm")}
+                        className="w-full rounded-2xl border-slate-200 bg-white text-sm"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Use this only if the cutoff date should be different from the current cutoff date shown above.
+                      </p>
+                    </div>
+                  </details>
+                </div>
                 <label className="space-y-2">
                   <span className="text-sm font-medium text-slate-700">Notes</span>
                   <input
