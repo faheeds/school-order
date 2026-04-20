@@ -10,7 +10,7 @@ import { prisma } from "@/lib/db";
 import { signOut } from "@/lib/auth";
 import { requireParent } from "@/lib/parent-auth";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
-import { getUpcomingOrderingWindowRange, getWeekdayNumber } from "@/lib/weekly-week";
+import { getSchoolWeekRangeForDate, getUpcomingOrderingWindowRange, getUpcomingSchoolWeekRange, getWeekdayNumber } from "@/lib/weekly-week";
 
 export default async function ParentAccountPage() {
   const session = await requireParent();
@@ -179,7 +179,6 @@ export default async function ParentAccountPage() {
         where: {
           schoolId,
           orderingOpen: true,
-          cutoffAt: { gt: now },
           deliveryDate: { gte: range.start, lte: range.end }
         },
         include: {
@@ -191,35 +190,55 @@ export default async function ParentAccountPage() {
         orderBy: { deliveryDate: "asc" }
       });
 
+      const anchorDeliveryDate = deliveryDates.find((deliveryDate) => deliveryDate.cutoffAt > now) ?? deliveryDates[0];
+      const weekRange = anchorDeliveryDate
+        ? getSchoolWeekRangeForDate(anchorDeliveryDate.deliveryDate, school.timezone)
+        : getUpcomingSchoolWeekRange(now, school.timezone);
+
+      const weekStart = new Date(weekRange.start);
+      const weekDateLabelByWeekday: Record<string, string> = {};
+      for (const weekday of [1, 2, 3, 4, 5] as const) {
+        const date = new Date(weekStart);
+        date.setDate(date.getDate() + (weekday - 1));
+        weekDateLabelByWeekday[String(weekday)] = formatInTimeZone(date, school.timezone, "MM/dd");
+      }
+
+      const deliveryDatesForWeek = deliveryDates.filter(
+        (deliveryDate) => deliveryDate.deliveryDate >= weekRange.start && deliveryDate.deliveryDate <= weekRange.end
+      );
+
+      const scheduledWeekdays: number[] = [];
       const eligibleWeekdays: number[] = [];
       const menuItemIdsByWeekday: Record<string, string[]> = {};
       const deliveryDateIsoByWeekday: Record<string, string> = {};
-      const deliveryDateLabelByWeekday: Record<string, string> = {};
 
-      for (const deliveryDate of deliveryDates) {
+      for (const deliveryDate of deliveryDatesForWeek) {
         const weekday = getWeekdayNumber(deliveryDate.deliveryDate, school.timezone);
-        if (weekday < 1 || weekday > 7) {
+        if (weekday < 1 || weekday > 5) {
           continue;
         }
 
         const key = String(weekday);
-        if (menuItemIdsByWeekday[key]) {
+        if (deliveryDateIsoByWeekday[key]) {
           continue;
         }
 
-        eligibleWeekdays.push(weekday);
+        scheduledWeekdays.push(weekday);
+        if (deliveryDate.cutoffAt > now) {
+          eligibleWeekdays.push(weekday);
+        }
         menuItemIdsByWeekday[key] = [...new Set(deliveryDate.menuAvailability.map((entry) => entry.menuItemId))].sort();
         deliveryDateIsoByWeekday[key] = deliveryDate.deliveryDate.toISOString();
-        deliveryDateLabelByWeekday[key] = formatInTimeZone(deliveryDate.deliveryDate, school.timezone, "MM/dd");
       }
 
       return [
         schoolId,
         {
+          scheduledWeekdays: [...new Set(scheduledWeekdays)].sort((a, b) => a - b),
           eligibleWeekdays: [...new Set(eligibleWeekdays)].sort((a, b) => a - b),
           menuItemIdsByWeekday,
           deliveryDateIsoByWeekday,
-          deliveryDateLabelByWeekday
+          weekDateLabelByWeekday
         }
       ] as const;
     })

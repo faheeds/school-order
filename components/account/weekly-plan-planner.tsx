@@ -51,10 +51,11 @@ type WeeklyPlanSummary = {
 };
 
 type WeeklyAvailability = {
+  scheduledWeekdays: number[];
   eligibleWeekdays: number[];
   menuItemIdsByWeekday: Record<string, string[]>;
   deliveryDateIsoByWeekday: Record<string, string>;
-  deliveryDateLabelByWeekday: Record<string, string>;
+  weekDateLabelByWeekday: Record<string, string>;
 };
 
 type PlannerProps = {
@@ -98,9 +99,11 @@ export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySch
 
   const selectedChild = children.find((child) => child.id === selectedChildId);
   const activeAvailability = selectedChild ? weeklyAvailabilityBySchoolId[selectedChild.schoolId] : undefined;
+  const scheduledWeekdays = activeAvailability?.scheduledWeekdays ?? [];
+  const scheduledWeekdaysSet = useMemo(() => new Set(scheduledWeekdays), [scheduledWeekdays]);
   const eligibleWeekdays = activeAvailability?.eligibleWeekdays ?? [];
   const eligibleWeekdaysSet = useMemo(() => new Set(eligibleWeekdays), [eligibleWeekdays]);
-  const selectedDateLabel = activeAvailability?.deliveryDateLabelByWeekday[String(selectedWeekday)] ?? "";
+  const selectedDateLabel = activeAvailability?.weekDateLabelByWeekday[String(selectedWeekday)] ?? "";
   const plansByWeekday = useMemo(() => {
     const filtered = existingPlans.filter((plan) => plan.parentChildId === selectedChildId);
     return weekdays.reduce<Record<number, WeeklyPlanSummary[]>>((acc, weekday) => {
@@ -111,23 +114,15 @@ export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySch
     }, {});
   }, [existingPlans, selectedChildId]);
 
-  const visibleWeekdays = useMemo(() => {
+  useEffect(() => {
     const plannedWeekdays = new Set(
       existingPlans.filter((plan) => plan.parentChildId === selectedChildId).map((plan) => plan.weekday)
     );
-    return weekdays.filter((weekday) => eligibleWeekdaysSet.has(weekday.value) || plannedWeekdays.has(weekday.value));
-  }, [eligibleWeekdaysSet, existingPlans, selectedChildId]);
-
-  useEffect(() => {
-    if (!visibleWeekdays.length) {
-      setSelectedWeekday(1);
-      return;
-    }
-
-    if (!visibleWeekdays.some((weekday) => weekday.value === selectedWeekday)) {
-      setSelectedWeekday(visibleWeekdays[0].value);
-    }
-  }, [selectedChildId, selectedWeekday, visibleWeekdays]);
+    const firstPlanned = weekdays.find((weekday) => plannedWeekdays.has(weekday.value))?.value;
+    const firstEligible = weekdays.find((weekday) => eligibleWeekdaysSet.has(weekday.value))?.value;
+    const firstScheduled = weekdays.find((weekday) => scheduledWeekdaysSet.has(weekday.value))?.value;
+    setSelectedWeekday(firstPlanned ?? firstEligible ?? firstScheduled ?? 1);
+  }, [eligibleWeekdaysSet, existingPlans, scheduledWeekdaysSet, selectedChildId]);
 
   const activeDayPlans = plansByWeekday[selectedWeekday] ?? [];
   const activeDraft = drafts[selectedWeekday];
@@ -145,6 +140,7 @@ export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySch
     ) ?? [];
   const activeRemovalOptions =
     activeMenuItem?.options.filter((option) => option.optionType === "REMOVAL") ?? [];
+  const isActiveWeekdayScheduled = scheduledWeekdaysSet.has(selectedWeekday);
   const isActiveWeekdayEligible = eligibleWeekdaysSet.has(selectedWeekday);
   const canAddForDay = isActiveWeekdayEligible && menuItemIdsForActiveDay.length > 0;
 
@@ -213,8 +209,13 @@ export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySch
       return;
     }
 
+    if (!scheduledWeekdaysSet.has(weekday)) {
+      setError("No delivery date is scheduled for this weekday yet.");
+      return;
+    }
+
     if (!eligibleWeekdaysSet.has(weekday)) {
-      setError("This day is not scheduled for delivery yet. Check with the admin dashboard before adding meals.");
+      setError("Ordering for this delivery date is closed (past cutoff).");
       return;
     }
 
@@ -273,16 +274,15 @@ export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySch
                       const childEligibleWeekdays = new Set(
                         weeklyAvailabilityBySchoolId[child.schoolId]?.eligibleWeekdays ?? []
                       );
+                      const childScheduledWeekdays = new Set(
+                        weeklyAvailabilityBySchoolId[child.schoolId]?.scheduledWeekdays ?? []
+                      );
                       const hasPlanForWeekday = (weekday: number) =>
                         existingPlans.some((plan) => plan.parentChildId === child.id && plan.weekday === weekday);
-                      const childVisibleWeekdays = weekdays.filter(
-                        (weekday) => childEligibleWeekdays.has(weekday.value) || hasPlanForWeekday(weekday.value)
-                      );
-                      const firstDayWithPlans =
-                        childVisibleWeekdays.find((day) => hasPlanForWeekday(day.value))?.value ??
-                        childVisibleWeekdays[0]?.value ??
-                        1;
-                      setSelectedWeekday(firstDayWithPlans);
+                      const firstDayWithPlans = weekdays.find((day) => hasPlanForWeekday(day.value))?.value;
+                      const firstEligible = weekdays.find((day) => childEligibleWeekdays.has(day.value))?.value;
+                      const firstScheduled = weekdays.find((day) => childScheduledWeekdays.has(day.value))?.value;
+                      setSelectedWeekday(firstDayWithPlans ?? firstEligible ?? firstScheduled ?? 1);
                       setError("");
                     }}
                     className={cn(
@@ -309,49 +309,46 @@ export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySch
                 </p>
               </div>
 
-              {visibleWeekdays.length ? (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {visibleWeekdays.map((weekday) => {
-                    const count = plansByWeekday[weekday.value]?.length ?? 0;
-                    const isActive = selectedWeekday === weekday.value;
-                    const isEligible = eligibleWeekdaysSet.has(weekday.value);
-                    const menuCount = activeAvailability?.menuItemIdsByWeekday[String(weekday.value)]?.length ?? 0;
-                    const dateLabel = activeAvailability?.deliveryDateLabelByWeekday[String(weekday.value)] ?? "";
-                    return (
-                      <button
-                        key={weekday.value}
-                        type="button"
-                        onClick={() => {
-                          setSelectedWeekday(weekday.value);
-                          setError("");
-                        }}
-                        className={cn(
-                          "min-w-[110px] rounded-2xl border px-4 py-3 text-left transition",
-                          isActive ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-200"
-                        )}
-                      >
-                        <p className="text-sm font-semibold text-ink">
-                          {weekday.label}
-                          {dateLabel ? ` (${dateLabel})` : ""}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {count
-                            ? `${count} planned`
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {weekdays.map((weekday) => {
+                  const count = plansByWeekday[weekday.value]?.length ?? 0;
+                  const isActive = selectedWeekday === weekday.value;
+                  const isScheduled = scheduledWeekdaysSet.has(weekday.value);
+                  const isEligible = eligibleWeekdaysSet.has(weekday.value);
+                  const menuCount = activeAvailability?.menuItemIdsByWeekday[String(weekday.value)]?.length ?? 0;
+                  const dateLabel = activeAvailability?.weekDateLabelByWeekday[String(weekday.value)] ?? "";
+                  return (
+                    <button
+                      key={weekday.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedWeekday(weekday.value);
+                        setError("");
+                      }}
+                      className={cn(
+                        "min-w-[110px] rounded-2xl border px-4 py-3 text-left transition",
+                        isActive ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-200"
+                      )}
+                    >
+                      <p className="text-sm font-semibold text-ink">
+                        {weekday.label}
+                        {dateLabel ? ` (${dateLabel})` : ""}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {count
+                          ? `${count} planned`
+                          : !isScheduled
+                            ? "Not scheduled"
                             : !isEligible
-                              ? "Not scheduled"
+                              ? "Closed"
                               : menuCount
                                 ? "Open"
                                 : "No menu"}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="rounded-2xl bg-white/80 p-4 text-sm text-slate-600">
-                  No delivery dates are available for the upcoming week yet.
-                </p>
-              )}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
 
               <div className="rounded-3xl border border-slate-100 p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -430,9 +427,14 @@ export function WeeklyPlanPlanner({ children, menuItems, weeklyAvailabilityBySch
                   <p className="text-sm font-semibold text-ink">
                     Add an item for {weekdays.find((day) => day.value === selectedWeekday)?.label}
                   </p>
-                  {!isActiveWeekdayEligible ? (
+                  {!isActiveWeekdayScheduled ? (
                     <p className="mt-2 rounded-2xl bg-white/80 px-4 py-3 text-sm text-slate-600">
-                      No delivery date is scheduled for this weekday yet. Add a delivery date in the admin dashboard to open ordering.
+                      No delivery date is scheduled for this weekday yet.
+                    </p>
+                  ) : null}
+                  {isActiveWeekdayScheduled && !isActiveWeekdayEligible ? (
+                    <p className="mt-2 rounded-2xl bg-white/80 px-4 py-3 text-sm text-slate-600">
+                      Ordering for this delivery date is closed (past cutoff).
                     </p>
                   ) : null}
                   {isActiveWeekdayEligible && !menuItemIdsForActiveDay.length ? (

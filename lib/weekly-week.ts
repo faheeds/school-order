@@ -27,6 +27,21 @@ export function getUpcomingSchoolWeekRange(now: Date, timezone: string) {
   };
 }
 
+export function getSchoolWeekRangeForDate(date: Date, timezone: string) {
+  const weekday = getWeekdayNumber(date, timezone);
+  const daysSinceMonday = weekday - 1;
+  const monday = new Date(date);
+  monday.setDate(monday.getDate() - daysSinceMonday);
+
+  const friday = new Date(monday);
+  friday.setDate(friday.getDate() + 4);
+
+  return {
+    start: buildLocalDayStart(monday, timezone),
+    end: buildLocalDayEnd(friday, timezone)
+  };
+}
+
 // Used by the parent "Upcoming week planner": include any still-orderable delivery dates
 // for the remainder of the current week, plus the next school week.
 export function getUpcomingOrderingWindowRange(now: Date, timezone: string) {
