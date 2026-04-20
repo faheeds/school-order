@@ -1,5 +1,5 @@
 "use client";
-
+import { GRADE_OPTIONS } from "@/lib/grade-options";
 import { useEffect, useMemo, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { formatInTimeZone } from "date-fns-tz";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
@@ -546,13 +546,23 @@ export function OrderForm({
 
                 <label className="space-y-2">
                   <span className="text-sm font-medium text-slate-700">Parent name</span>
-                  <input
-                    name="parentName"
-                    required
-                    className="w-full rounded-2xl border-slate-200 bg-white text-sm"
-                    value={parentName}
-                    onChange={(event) => setParentName(event.target.value)}
-                  />
+                  <select
+    name="grade"
+    required
+    className="w-full rounded-2xl border-slate-200 bg-white text-sm"
+    value={grade}
+    onChange={(event) => setGrade(event.target.value)}
+  >
+    <option value="">Select grade</option>
+    {grade && !GRADE_OPTIONS.includes(grade as (typeof GRADE_OPTIONS)[number]) ? (
+      <option value={grade}>{grade}</option>
+    ) : null}
+    {GRADE_OPTIONS.map((option) => (
+      <option key={option} value={option}>
+        {option}
+      </option>
+    ))}
+  </select>
                 </label>
 
                 <label className="space-y-2">

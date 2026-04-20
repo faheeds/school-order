@@ -1,0 +1,17 @@
+diff --git a/app/account/page.tsx b/app/account/page.tsx
+--- a/app/account/page.tsx
++++ b/app/account/page.tsx
+@@
+-      const deliveryDateIsoByWeekday: Record<string, string> = {};
++      const deliveryDateIsoByWeekday: Record<string, string> = {};
++      const deliveryDateLabelByWeekday: Record<string, string> = {};
+@@
+-        deliveryDateIsoByWeekday[key] = deliveryDate.deliveryDate.toISOString();
++        deliveryDateIsoByWeekday[key] = deliveryDate.deliveryDate.toISOString();
++        deliveryDateLabelByWeekday[key] = formatInTimeZone(deliveryDate.deliveryDate, school.timezone, "MM/dd");
+@@
+-          deliveryDateIsoByWeekday
++          deliveryDateIsoByWeekday,
++          deliveryDateLabelByWeekday
+         }
+       ] as const;
