@@ -317,7 +317,17 @@ export default async function ParentAccountPage() {
                             className="rounded-2xl border-slate-200"
                             required
                           />
-                          <input name="grade" defaultValue={child.grade} placeholder="Grade" className="rounded-2xl border-slate-200" required />
+                          <select name="grade" className="rounded-2xl border-slate-200" required defaultValue={child.grade}>
+                            <option value="">Select grade</option>
+                            {!GRADE_OPTIONS.includes(child.grade as (typeof GRADE_OPTIONS)[number]) ? (
+                              <option value={child.grade}>{child.grade}</option>
+                            ) : null}
+                            {GRADE_OPTIONS.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
                           <input
                             name="allergyNotes"
                             defaultValue={child.allergyNotes ?? ""}
@@ -355,7 +365,14 @@ export default async function ParentAccountPage() {
                   ))}
                 </select>
                 <input name="studentName" placeholder="Student name" className="rounded-2xl border-slate-200" required />
-                <input name="grade" placeholder="Grade" className="rounded-2xl border-slate-200" required />
+                <select name="grade" className="rounded-2xl border-slate-200" required>
+                  <option value="">Select grade</option>
+                  {GRADE_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
                 <input name="allergyNotes" placeholder="Allergy notes" className="rounded-2xl border-slate-200" />
                 <input name="dietaryNotes" placeholder="Dietary notes" className="rounded-2xl border-slate-200 md:col-span-2" />
                 <SubmitButton label="Save child" pendingLabel="Saving..." />
