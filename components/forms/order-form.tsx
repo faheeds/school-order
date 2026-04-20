@@ -546,23 +546,13 @@ export function OrderForm({
 
                 <label className="space-y-2">
                   <span className="text-sm font-medium text-slate-700">Parent name</span>
-                  <select
-    name="grade"
-    required
-    className="w-full rounded-2xl border-slate-200 bg-white text-sm"
-    value={grade}
-    onChange={(event) => setGrade(event.target.value)}
-  >
-    <option value="">Select grade</option>
-    {grade && !GRADE_OPTIONS.includes(grade as (typeof GRADE_OPTIONS)[number]) ? (
-      <option value={grade}>{grade}</option>
-    ) : null}
-    {GRADE_OPTIONS.map((option) => (
-      <option key={option} value={option}>
-        {option}
-      </option>
-    ))}
-  </select>
+                  <input
+                    name="parentName"
+                    required
+                    className="w-full rounded-2xl border-slate-200 bg-white text-sm"
+                    value={parentName}
+                    onChange={(event) => setParentName(event.target.value)}
+                  />
                 </label>
 
                 <label className="space-y-2">
@@ -591,13 +581,23 @@ export function OrderForm({
 
                 <label className="space-y-2">
                   <span className="text-sm font-medium text-slate-700">Grade</span>
-                  <input
+                  <select
                     name="grade"
                     required
                     className="w-full rounded-2xl border-slate-200 bg-white text-sm"
                     value={grade}
                     onChange={(event) => setGrade(event.target.value)}
-                  />
+                  >
+                    <option value="">Select grade</option>
+                    {grade && !GRADE_OPTIONS.includes(grade as (typeof GRADE_OPTIONS)[number]) ? (
+                      <option value={grade}>{grade}</option>
+                    ) : null}
+                    {GRADE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </div>
             </div>
