@@ -9,6 +9,7 @@ import { adminLoginSchema } from "@/lib/validation/order";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
+  secret: env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/account/sign-in"
