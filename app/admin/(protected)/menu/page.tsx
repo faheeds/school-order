@@ -34,6 +34,46 @@ async function createMenuOption(formData: FormData) {
   revalidatePath("/admin/menu");
 }
 
+async function syncClassicCheeseburgerToppings() {
+  "use server";
+
+  const menuItem = await prisma.menuItem.findUnique({
+    where: { slug: "classic-cheeseburger" }
+  });
+
+  if (!menuItem) {
+    return;
+  }
+
+  await prisma.menuItem.update({
+    where: { id: menuItem.id },
+    data: {
+      description: "Signature Burgers & Sandwiches. Angus beef patty with cheddar. Add toppings if you'd like."
+    }
+  });
+
+  const namesToReplace = ["Lettuce", "Tomato", "Pickles", "Onions", "Jalapenos"];
+
+  await prisma.menuOption.deleteMany({
+    where: {
+      menuItemId: menuItem.id,
+      name: { in: namesToReplace }
+    }
+  });
+
+  await prisma.menuOption.createMany({
+    data: [
+      { menuItemId: menuItem.id, name: "Lettuce", optionType: "ADD_ON", priceDeltaCents: 49, sortOrder: 10, isDefault: false },
+      { menuItemId: menuItem.id, name: "Tomato", optionType: "ADD_ON", priceDeltaCents: 49, sortOrder: 11, isDefault: false },
+      { menuItemId: menuItem.id, name: "Pickles", optionType: "ADD_ON", priceDeltaCents: 49, sortOrder: 12, isDefault: false },
+      { menuItemId: menuItem.id, name: "Onions", optionType: "ADD_ON", priceDeltaCents: 49, sortOrder: 13, isDefault: false },
+      { menuItemId: menuItem.id, name: "Jalapenos", optionType: "ADD_ON", priceDeltaCents: 49, sortOrder: 14, isDefault: false }
+    ]
+  });
+
+  revalidatePath("/admin/menu");
+}
+
 export default async function AdminMenuPage() {
   const items = await prisma.menuItem.findMany({
     include: { options: { orderBy: [{ optionType: "asc" }, { sortOrder: "asc" }] } },
@@ -49,7 +89,9 @@ export default async function AdminMenuPage() {
           <input name="name" placeholder="Item name" className="rounded-2xl border-slate-200" required />
           <input name="description" placeholder="Description" className="rounded-2xl border-slate-200" />
           <input name="basePriceCents" placeholder="Base price cents" className="rounded-2xl border-slate-200" required />
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isActive" defaultChecked /> Active</label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="isActive" defaultChecked /> Active
+          </label>
           <SubmitButton label="Create item" pendingLabel="Saving..." />
         </form>
       </Card>
@@ -73,6 +115,17 @@ export default async function AdminMenuPage() {
           <SubmitButton label="Add option" pendingLabel="Saving..." />
         </form>
       </Card>
+
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold">Quick fixes</h2>
+        <p className="text-sm text-slate-600">
+          Classic Cheeseburger should not include lettuce, tomato, pickles, onions, or jalapenos by default. This updates them as $0.49 add-ons.
+        </p>
+        <form action={syncClassicCheeseburgerToppings}>
+          <SubmitButton label="Update Classic Cheeseburger toppings" pendingLabel="Updating..." />
+        </form>
+      </Card>
+
       <div className="grid gap-4">
         {items.map((item) => (
           <Card key={item.id} className="space-y-3 text-sm text-slate-600">

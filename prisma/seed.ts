@@ -205,16 +205,18 @@ async function main() {
     {
       name: "Classic Cheeseburger",
       slug: "classic-cheeseburger",
-      description: "Signature Burgers & Sandwiches. Angus beef patty with cheddar, lettuce, tomato, and pickles.",
+      description: "Signature Burgers & Sandwiches. Angus beef patty with cheddar. Add toppings if you'd like.",
       basePriceCents: 1099,
       options: [
         { name: "Extra cheddar", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 1 },
         { name: "Bacon", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 200, sortOrder: 2 },
         { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 3 },
         { name: "Extra patty", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 399, sortOrder: 4 },
-        { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
-        { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
-        { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 }
+        { name: "Lettuce", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 49, sortOrder: 10 },
+        { name: "Tomato", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 49, sortOrder: 11 },
+        { name: "Pickles", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 49, sortOrder: 12 },
+        { name: "Onions", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 49, sortOrder: 13 },
+        { name: "Jalapenos", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 49, sortOrder: 14 }
       ]
     },
     {
